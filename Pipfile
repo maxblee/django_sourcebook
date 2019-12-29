@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+django-debug-toolbar = "*"
+pytest = "*"
+nox = "*"
+pylint = "*"
+hypothesis = "*"
+
+[packages]
+django = "*"
+django-autocomplete-light = "*"
+django-taggit = "*"
+django-extra-views = "*"
+
+[requires]
+python_version = "3.7"
