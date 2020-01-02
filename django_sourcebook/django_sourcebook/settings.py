@@ -31,6 +31,10 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "phonenumber_field",
+    "reversion",
+    "taggit",
+    "sourcebook.apps.SourcebookConfig",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -75,8 +79,12 @@ WSGI_APPLICATION = 'django_sourcebook.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': "sourcebook",
+        "USER": "sourcebook_admin",
+        "PASSWORD": "p3rfect_hUm@n",
+        "HOST": "localhost",
+        "PORT": "",
     }
 }
 
@@ -105,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/New_York'
 
 USE_I18N = True
 
@@ -113,8 +121,52 @@ USE_L10N = True
 
 USE_TZ = True
 
+USE_THOUSAND_SEPARATOR = True
+
+PHONENUMBER_DB_FORMAT = 'NATIONAL'
+PHONENUMBER_DEFAULT_REGION = 'US'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+# from https://www.bedjango.com/blog/how-install-django-debug-toolbar/
+
+if DEBUG:
+   INTERNAL_IPS = ('127.0.0.1', 'localhost',)
+   MIDDLEWARE += (
+       'debug_toolbar.middleware.DebugToolbarMiddleware',
+   )
+
+   INSTALLED_APPS += (
+       'debug_toolbar',
+       "django_extensions"
+   )
+
+   GRAPH_MODELS = {
+       "pygraphviz": True,
+       "group_models": True,
+       'exclude_models': 'BasePasscode, AbstractBaseUser, PermissionsMixin, Group, Permission'
+   }
+
+   DEBUG_TOOLBAR_PANELS = [
+       'debug_toolbar.panels.versions.VersionsPanel',
+       'debug_toolbar.panels.timer.TimerPanel',
+       'debug_toolbar.panels.settings.SettingsPanel',
+       'debug_toolbar.panels.headers.HeadersPanel',
+       'debug_toolbar.panels.request.RequestPanel',
+       'debug_toolbar.panels.sql.SQLPanel',
+       'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+       'debug_toolbar.panels.templates.TemplatesPanel',
+       'debug_toolbar.panels.cache.CachePanel',
+       'debug_toolbar.panels.signals.SignalsPanel',
+       'debug_toolbar.panels.logging.LoggingPanel',
+       'debug_toolbar.panels.redirects.RedirectsPanel',
+   ]
+
+   DEBUG_TOOLBAR_CONFIG = {
+       'INTERCEPT_REDIRECTS': False,
+   }

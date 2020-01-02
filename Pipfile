@@ -9,12 +9,21 @@ pytest = "*"
 nox = "*"
 pylint = "*"
 hypothesis = "*"
+# need specified output because black isn't yet in stable
+black = "==19.10b0"
+django-extensions = "*"
+pygraphviz = "*"
 
 [packages]
 django = "*"
 django-autocomplete-light = "*"
 django-taggit = "*"
 django-extra-views = "*"
+psycopg2 = "*"
+us = "*"
+django-phonenumber-field = "*"
+phonenumbers = "*"
+django-reversion = "*"
 
 [requires]
 python_version = "3.7"

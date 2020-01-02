@@ -3,3 +3,10 @@ __pycache__/
 .DS_Store
 
 *.sqlite3
+
+django_sourcebook/media/audio_files/*
+django_sourcebook/media/audio_transcript/*
+django_sourcebook/media/documents/*
+django_sourcebook/media/foia_templates/*
+
+migrations/
