@@ -18,12 +18,12 @@ pygraphviz = "*"
 django = "*"
 django-autocomplete-light = "*"
 django-taggit = "*"
-django-extra-views = "*"
 psycopg2 = "*"
 us = "*"
 django-phonenumber-field = "*"
 phonenumbers = "*"
 django-reversion = "*"
+django-better-admin-arrayfield = "*"
 
 [requires]
 python_version = "3.7"

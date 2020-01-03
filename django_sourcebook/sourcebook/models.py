@@ -5,7 +5,7 @@ from django.utils import timezone
 import us
 from phonenumber_field.modelfields import PhoneNumberField
 from taggit.managers import TaggableManager
-from extended_choices import Choices
+from django_better_admin_arrayfield.models.fields import ArrayField
 import reversion
 import datetime
 # import top-level package utilities
@@ -30,6 +30,7 @@ def get_current_date():
 @reversion.register(fields=["foia_template"])
 class State(models.Model):
     fips_code = models.CharField(max_length=2, validators=[utils.validators.validate_fips])
+    public_records_act_name = models.CharField("name of state public records act", max_length=200, blank=True, null=True)
     foia_template = models.FileField(
         upload_to="foia_templates/", 
         verbose_name="Public Records act template",
@@ -93,31 +94,51 @@ class Entity(models.Model):
     class Meta:
         verbose_name_plural = "entities"
 
-@reversion.register(fields=["status", "fee assessed", "modified_request", "requested_records"])
-class FoiaRequest(models.Model):
-
+class FoiaRequestBase(models.Model):
+    """Represents the base content of a FOIA Request (i.e. everything but the entity/entities the request is going to)"""
     short_description = models.CharField(max_length=100)
-    agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
     date_filed = models.DateTimeField(default=timezone.now)
-    status = models.CharField(max_length=2, choices=FoiaStatus.choices, default=FoiaStatus.NO_RESPONSE)
-    contact = models.ForeignKey("Source", on_delete=models.CASCADE)
-    requested_formats = TaggableManager()
+    requested_formats = TaggableManager(verbose_name="Requested Format")
     requested_records = models.TextField()
     expedited_processing = models.TextField(
-        verbose_name="justification for expedited processing", 
+        verbose_name="justification for expedited processing",
         blank=True
-        )
+    )
     fee_waiver = models.TextField(
-        verbose_name="Fee waiver justification", 
+        verbose_name="fee waiver justification",
         blank=True
-        )
-    fee_assessed = models.DecimalField(max_digits=9, decimal_places=2, blank=True, null=True)
-    modified_request = models.BooleanField(default=False, help_text="Have you modified (narrowed or broadened) your initial request?")
-    time_completed = models.DateTimeField(blank=True, null=True)
+    )
     related_project = models.ForeignKey("Project", blank=True, null=True, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.short_description
+
+    class Meta:
+        verbose_name = "FOIA Request Body"
+        verbose_name_plural = "FOIA Request Bodies"
+
+@reversion.register(fields=["status", "fee_assessed", "modifications", "expedited_processing_granted"])
+class FoiaRequestItem(models.Model):
+    """A model representing a single FOIA request to a single agency"""
+    request_content = models.ForeignKey(FoiaRequestBase, on_delete=models.CASCADE)
+    agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
+    # this doesn't link to a source because in a lot of cases, we won't know the officer's name
+    # and we can link our actual contacts to a FOIA request.
+    recipient_name = models.CharField("name of public records officer", max_length=150)
+    status = models.CharField(max_length=2, choices=FoiaStatus.choices, default=FoiaStatus.NO_RESPONSE)
+    expedited_processing_granted = models.BooleanField(default=False, help_text="Did the agency grant your request for expedited processing?")
+    fee_assessed = models.DecimalField(max_digits=9, decimal_places=2, blank=True, null=True)
+    modifications = ArrayField(
+        models.CharField(max_length=100),
+        default=list,
+        blank=True,
+        null=True,
+        help_text="list any modifications you've made to your original request"
+    )
+    time_completed = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.request_content} ({self.agency})"
 
     class Meta:
         verbose_name = "FOIA Request"
@@ -299,7 +320,7 @@ class Document(models.Model):
         blank=True
         )
     doc_file = models.FileField("file", upload_to="documents/")
-    foia_request = models.ForeignKey(FoiaRequest, verbose_name="FOIA Request", on_delete=models.CASCADE, blank=True)
+    foia_request = models.ForeignKey(FoiaRequestItem, verbose_name="FOIA Request", on_delete=models.CASCADE, blank=True, null=True)
     related_project = models.ForeignKey("Project", blank=True, null=True, on_delete=models.CASCADE)
 
     def __str__(self):

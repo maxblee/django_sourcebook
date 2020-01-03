@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% block page_title %}{% endblock %} | Sourcebook</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/foundation-sites@6.6.1/dist/css/foundation.min.css" integrity="sha256-Q2fXBbKhtsyhYrSLa7hXCNV+FdhbQhyrjks8Kic0u/U=" crossorigin="anonymous">
+    <style>
+    * {
+        margin-left: 15px;
+    }
+    </style>
+    {% block static_content %}{% endblock %}
+</head>
+<body>
+    <header>
+
+    </header>
+    <main>
+        {% block container %}
+        {% endblock %}
+    </main>
+    <footer>
+
+    </footer>
+{% block script_on_ready %}{% endblock %}
+</body>
+</html>

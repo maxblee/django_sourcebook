@@ -8,10 +8,23 @@ from sourcebook.models import (
     Project,
     ProjectTask,
     Document,
-    FoiaRequest,
+    FoiaRequestBase,
+    FoiaRequestItem,
     Entity,
     State
 )
+
+@admin.register(FoiaRequestBase)
+class FoiaRequestBaseAdmin(admin.ModelAdmin):
+    list_display = ("short_description", "date_filed")
+
+@admin.register(FoiaRequestItem)
+class FoiaRequestItemAdmin(VersionAdmin):
+    list_display = ("request_content", "agency", "date_filed", "status", "time_completed")
+
+    def date_filed(self, obj):
+        return obj.request_content.date_filed
+
 # Register your models here.
 @admin.register(Source)
 class SourceAdmin(VersionAdmin):
@@ -39,9 +52,6 @@ class ProjectTaskAdmin(VersionAdmin):
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
     pass
-@admin.register(FoiaRequest)
-class FoiaRequestAdmin(VersionAdmin):
-    list_display = ("short_description", "agency", "date_filed", "status", "time_completed")
 @admin.register(Entity)
 class EntityAdmin(admin.ModelAdmin):
     list_display = ("name", "municipality", "state")

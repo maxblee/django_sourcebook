@@ -1,0 +1,51 @@
+{% extends "base_generic.html" %}
+{% block page_title %}File FOIA Requests{% endblock %}
+
+{% block static_content %}
+<script
+			  src="https://code.jquery.com/jquery-3.4.1.min.js"
+			  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+              crossorigin="anonymous"></script>
+{% endblock %}
+
+{% block container %}
+<h2>Batch File Public Records Request(s)</h2>
+<form method="POST" action="">
+    {% csrf_token %}
+    {{ foia_base.non_field_errors }}
+    {{ foia_formset.non_field_errors }}
+    {% include "_fieldset_snippet.html" with form=foia_base legend_name="Public Records Act Template" %}
+        <fieldset class="fieldset">
+            <legend>Agencies</legend>
+            {{ foia_formset.management_form }}
+            <div id="formset-container">
+                {% for form in foia_formset %}
+                    {% include "_fieldset_snippet.html" with form=form legend_name="Agency" %}
+                {% endfor %}
+            </div>
+            <div id="empty_form" style="display:none;">
+                {% include "_fieldset_snippet.html" with form=foia_formset.empty_form legend_name="Agency" %}
+            </div>
+            <input type="hidden" value="1" name="additems" id="additems">
+            <button id="additemsbutton" type="button" class="button">Add Agency</button>
+        </fieldset>
+    <button type="submit" class="button">File Request(s)</button>
+</form>
+{% endblock %}
+
+{% block script_on_ready %}
+<script>
+    // from https://stackoverflow.com/questions/39095941/shall-i-use-django-dynamic-formset-or-there-is-a-bettor-solution
+    var form_num = 0;
+    $(document).ready(function() {
+          $("#additemsbutton").on('click',function(event)
+          {
+            ++form_num;
+            $('#formset-container').append($('#empty_form').html().replace(/__prefix__/g, form_num));
+            $("#additems").val(form_num + 1);
+            // I have to increase the total number of forms in order to have my database add them all
+            $("#id_form-TOTAL_FORMS").val(form_num + 1)
+         });
+       });
+  </script>
+{% endblock %}

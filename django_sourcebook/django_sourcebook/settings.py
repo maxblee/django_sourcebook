@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "phonenumber_field",
     "reversion",
     "taggit",
+    'django_better_admin_arrayfield.apps.DjangoBetterAdminArrayfieldConfig',
     "sourcebook.apps.SourcebookConfig",
     'django.contrib.admin',
     'django.contrib.auth',
