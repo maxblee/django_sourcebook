@@ -24,6 +24,9 @@ django-phonenumber-field = "*"
 phonenumbers = "*"
 django-reversion = "*"
 django-better-admin-arrayfield = "*"
+oauth2client = "*"
+google-api-python-client = "*"
+mammoth = "*"
 
 [requires]
 python_version = "3.7"

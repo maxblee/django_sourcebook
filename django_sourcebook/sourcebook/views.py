@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 from sourcebook.models import FoiaStatus, FoiaRequestItem
 from sourcebook.forms import FoiaRequestBaseForm, FoiaRequestFormSet
+from sourcebook import foia_sender
 # Create your views here.
 
 def index(request):
@@ -21,13 +22,14 @@ def create_foia_request(request):
             foia_request = base_request.save(commit=False)
             foia_request.date_filed = timezone.now()
             foia_request.save()
-            print(len(agency_requests))
             for form in agency_requests:
                 current_foia = form.save(commit=False)
                 current_foia.request_content = foia_request
                 current_foia.status = FoiaStatus.NO_RESPONSE
                 current_foia.expedited_processing_granted = False
                 current_foia.save()
+                foia_email = foia_sender.FoiaHandler(foia_request, current_foia)
+                foia_email.file_request()
             return HttpResponseRedirect(reverse("index"))
     else:
         base_request = FoiaRequestBaseForm()

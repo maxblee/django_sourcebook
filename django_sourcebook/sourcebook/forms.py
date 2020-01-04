@@ -1,5 +1,10 @@
 from django import forms
-from sourcebook.models import FoiaRequestBase, FoiaRequestItem
+from django.db.models import Q
+from sourcebook.models import (
+    Entity,
+    FoiaRequestBase, 
+    FoiaRequestItem,
+)
 
 class FoiaRequestBaseForm(forms.ModelForm):
 
@@ -20,3 +25,7 @@ FoiaRequestFormSet = forms.modelformset_factory(
     fields=("agency", "recipient_name",),
     extra=1,
 )
+#only show agencies that 
+FoiaRequestFormSet.form.base_fields["agency"].queryset = Entity.objects.filter(
+    Q(foia_email__isnull=False)
+    )

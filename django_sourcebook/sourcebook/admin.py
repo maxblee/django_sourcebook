@@ -10,9 +10,19 @@ from sourcebook.models import (
     Document,
     FoiaRequestBase,
     FoiaRequestItem,
+    ScheduledFoiaContent,
+    ScheduledFoiaAgency,
     Entity,
     State
 )
+
+@admin.register(ScheduledFoiaContent)
+class ScheduledFoiaRequestContent(admin.ModelAdmin):
+    pass
+
+@admin.register(ScheduledFoiaAgency)
+class ScheduledFoiaRequestForAgency(admin.ModelAdmin):
+    pass
 
 @admin.register(FoiaRequestBase)
 class FoiaRequestBaseAdmin(admin.ModelAdmin):

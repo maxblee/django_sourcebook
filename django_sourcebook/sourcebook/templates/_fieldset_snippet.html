@@ -11,7 +11,7 @@
             {% if form.is_bound %}
                 {% if field.errors %}
                     {% for error in field.errors %}
-                        <span class="form-error">{{ error|escape }}</span>
+                        <span class="error">{{ error|escape }}</span>
                     {% endfor %}
                 {% endif %}
             {% endif %}

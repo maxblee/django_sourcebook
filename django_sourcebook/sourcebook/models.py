@@ -94,11 +94,12 @@ class Entity(models.Model):
     class Meta:
         verbose_name_plural = "entities"
 
-class FoiaRequestBase(models.Model):
-    """Represents the base content of a FOIA Request (i.e. everything but the entity/entities the request is going to)"""
+class FoiaContent(models.Model):
+    """An abstract base class representing the core content of a FOIA Request.
+
+    Used by both `FoiaRequestBase` and `ScheduledFoiaContent`."""
     short_description = models.CharField(max_length=100)
-    date_filed = models.DateTimeField(default=timezone.now)
-    requested_formats = TaggableManager(verbose_name="Requested Format")
+    requested_formats = TaggableManager(verbose_name="Requested format")
     requested_records = models.TextField()
     expedited_processing = models.TextField(
         verbose_name="justification for expedited processing",
@@ -110,12 +111,31 @@ class FoiaRequestBase(models.Model):
     )
     related_project = models.ForeignKey("Project", blank=True, null=True, on_delete=models.CASCADE)
 
+    class Meta:
+        abstract = True
+
+class ScheduledFoiaContent(FoiaContent):
+    date_started = models.DateField(auto_now_add=True)
+    date_stopped = models.DateField(null=True, blank=True, help_text="When do you want to stop running this scheduler?")
+    request_frequency = models.DurationField(help_text="How frequently do you want to have this request filed?")
+    request_period = models.BooleanField("Have request go out to all records filed since the last time you ran the request")
+
+
+class FoiaRequestBase(FoiaContent):
+    """Represents the base content of a FOIA Request (i.e. everything but the entity/entities the request is going to)"""
+    date_filed = models.DateTimeField(default=timezone.now)
+
     def __str__(self):
         return self.short_description
 
     class Meta:
         verbose_name = "FOIA Request Body"
         verbose_name_plural = "FOIA Request Bodies"
+
+class ScheduledFoiaAgency(models.Model):
+    request_content = models.ForeignKey(ScheduledFoiaContent, on_delete=models.CASCADE)
+    agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
+    recipient_name = models.CharField("name of public records officer", max_length=150)
 
 @reversion.register(fields=["status", "fee_assessed", "modifications", "expedited_processing_granted"])
 class FoiaRequestItem(models.Model):
@@ -124,7 +144,7 @@ class FoiaRequestItem(models.Model):
     agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
     # this doesn't link to a source because in a lot of cases, we won't know the officer's name
     # and we can link our actual contacts to a FOIA request.
-    recipient_name = models.CharField("name of public records officer", max_length=150)
+    recipient_name = models.CharField("name of public records officer", max_length=150, blank=True)
     status = models.CharField(max_length=2, choices=FoiaStatus.choices, default=FoiaStatus.NO_RESPONSE)
     expedited_processing_granted = models.BooleanField(default=False, help_text="Did the agency grant your request for expedited processing?")
     fee_assessed = models.DecimalField(max_digits=9, decimal_places=2, blank=True, null=True)

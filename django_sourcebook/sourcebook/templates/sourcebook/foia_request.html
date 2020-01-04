@@ -29,7 +29,7 @@
             <input type="hidden" value="1" name="additems" id="additems">
             <button id="additemsbutton" type="button" class="button">Add Agency</button>
         </fieldset>
-    <button type="submit" class="button">File Request(s)</button>
+    <button type="submit" class="button" id="submit-button">File Request</button>
 </form>
 {% endblock %}
 
@@ -44,7 +44,9 @@
             $('#formset-container').append($('#empty_form').html().replace(/__prefix__/g, form_num));
             $("#additems").val(form_num + 1);
             // I have to increase the total number of forms in order to have my database add them all
-            $("#id_form-TOTAL_FORMS").val(form_num + 1)
+            $("#id_form-TOTAL_FORMS").val(form_num + 1);
+            // have the File Request text turn to File Requests when you add an agency to the request
+            $("#submit-button").text((_, current_text) => form_num == 1 ? current_text + "s" : current_text);
          });
        });
   </script>

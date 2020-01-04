@@ -133,6 +133,10 @@ PHONENUMBER_DEFAULT_REGION = 'US'
 
 STATIC_URL = '/static/'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+BASE_FOIA_TEMPLATE = "base_request.docx"
+FEDERAL_FOIA_TEMPLATE = "federal_foia.docx"
+CREDENTIALS = os.path.join(BASE_DIR, "credentials")
+FROM_EMAIL = "maxlee.news@gmail.com"
 
 # from https://www.bedjango.com/blog/how-install-django-debug-toolbar/
 
