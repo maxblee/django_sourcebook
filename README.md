@@ -1,8 +1,18 @@
 # A Django Toolkit for Journalism
 
+This is a tool I've started to create in order to organize my work as a journalist and in order to file public records requests.
+
+Right now, it's very much a work in project, but it offers some basic tools that I expect will help me do my work as a journalist:
+
+- The database behind this program links up sources, interviews and interview attempts, public records requests, and stories in order
+for me to be able to more effectively stay organized and keep track of my work.
+- The site offers a way for me to file public records requests, including bulk public records requests. These public records requests use a background template or state-specific templates, allowing me to file more than one public records request at a time.
+- The site offers a basic search mechanism to find sources. I will eventually add other search tools to help me organize FOIA requests, etc.
+
+I am hoping to build this out a lot more thoroughly and to add in some testing to make this tool more effective and robust. But for now, it's a useful start to a tool that I expect to continue using for a long time.
 ## Table of Contents
 - [Setup and installation](#setup-and-installation)
-- FOIA
+- [FOIA](#foia)
     - [Templates](#templates)
 - [Future Roadmap](#future-roadmap)
 
@@ -71,9 +81,7 @@ Second, any keywords in your FOIA request should be enclosed with two brackets, 
 
 ## Future Roadmap
 
-As it stands, this is far from a complete project. It's really a first stab at a tool that I plan on using for a long time
-to keep track of sources, file FOIA requests, and integrate all of my contacts (including FOIA requests) to projects I'm working
-on.
+As it stands, this is far from a complete project. It's really a first stab at a tool to keep track of sources, file FOIA requests, and integrate all of my contacts (including FOIA requests) to projects I'm working on.
 
 I have a bunch of features that I plan on adding in the future. Because of this, you should refrain from any attempts
 to use portions of this tool as a library, since future releases may break the functionality of your tool. If you absolutely need to use portions of this tool as a library, make sure to link the specific tag number on installation. 
@@ -86,5 +94,5 @@ I encourage people to play around with this, fork the project, file pull request
 - Admin forms: Right now, I'm dealing with all of the forms except for request filing from within the django admin. Eventually, I want to customize those views a bit or create my own forms outside of the admin to make portions of this program easier to use and administer.
 - More views: I'm hoping to add some more views to allow users to better see their contacts, link those contacts to sources and FOIA requests, etc.
 - Search and autofill: I want to add some searching functionality so that people can better filter their results and find what they're looking for. (I plan on using `autocomplete-light` and either PostGreSQL full search or ElasticSearch for this.)
-- Testing: Right now, I'm really light on testing, because I wanted to get this program up to a somewhat functional state quickly. I would like to change this. I'll be using `pytest-cov` for testing and coverage tests, `nox` for testing against different environments, and `hypothesis` for running property-based tests. (This comes in handy for checking custom form validation and custom serialization/deserialization.)
+- Testing: Right now, I'm really light on testing, because I wanted to get this program up to a somewhat functional state quickly. That is, I've manually tested the tool on some common-use cases, but I haven't added any programmatic tests and I haven't tested on any edge cases or corner cases. I would like to change this. I'll be using `pytest-cov` for testing and coverage tests, `nox` for testing against different environments, and `hypothesis` for running property-based tests. (This comes in handy for checking custom form validation and custom serialization/deserialization.)
 - Documentation: I have tried to make this README usable. But eventually, I'd like to add a more thorough user guide. In particular, I think it would be cool to have a video or two demonstrating how to use this tool.
