@@ -15,10 +15,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-
+import sourcebook.views
 urlpatterns = [
+    path("", sourcebook.views.site_index, name="site_index"),
     path('admin/', admin.site.urls),
-    path("sourcebook/", include("sourcebook.urls")),
+    path("sourcebook/", include("sourcebook.urls.sourcebook")),
+    path("foia/", include("sourcebook.urls.foia")),
+    path("projects/", include("sourcebook.urls.projects"))
 ]
 
 # debug toolbar settings

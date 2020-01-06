@@ -25,7 +25,7 @@ SECRET_KEY = 'tuj(w@unir75$i^o!gp=4)5d-4d4shdpo4zz+lh%w9&_z_3xj='
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost"]
 
 
 # Application definition
@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     "reversion",
     "taggit",
     'django_better_admin_arrayfield.apps.DjangoBetterAdminArrayfieldConfig',
+    "django_sourcebook",
+    "django_tables2",
     "sourcebook.apps.SourcebookConfig",
     'django.contrib.admin',
     'django.contrib.auth',
@@ -82,8 +84,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': "sourcebook",
-        "USER": "sourcebook_admin",
-        "PASSWORD": "p3rfect_hUm@n",
+        "USER": os.environ["POSTGRES_USER"],
+        "PASSWORD": os.environ["POSTGRES_PWD"],
         "HOST": "localhost",
         "PORT": "",
     }

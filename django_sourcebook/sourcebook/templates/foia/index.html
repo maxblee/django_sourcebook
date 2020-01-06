@@ -1,0 +1,15 @@
+{% extends "base_generic.html" %}
+{% block page_title %}FOIA Requests{% endblock %}
+{% block sidenav %}
+{% include "foia/_sidenav.html" %}
+{% endblock %}
+{% block container %}
+<h1>Public Records Requests</h1>
+<ul class="stat-container no-bullet">
+    <li class="stat-item"><span class="stat">{{num_requests}} </span><span class="subheader h3">requests filed</span></li>
+    <li class="stat-item"><span class="stat">{{num_cur_yr}} </span><span class="subheader h3">requests filed this year</span></li>
+    <li class="stat-item"><span class="stat">{{avg_resp_time}} days</span><span class="subheader h3">Average completion time</span></li>
+    <li class="stat-item"><span class="stat">{{max_resp_time}} days</span><span class="subheader h3">Maximum completion time</span></li>
+</ul>
+<h2 class="text-center">Search for Requests</h2>
+{% endblock %}

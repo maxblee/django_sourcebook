@@ -27,6 +27,9 @@ django-better-admin-arrayfield = "*"
 oauth2client = "*"
 google-api-python-client = "*"
 mammoth = "*"
+apscheduler = "*"
+django-apscheduler = "*"
+django-tables2 = "*"
 
 [requires]
 python_version = "3.7"

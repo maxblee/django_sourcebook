@@ -157,6 +157,13 @@ class FoiaRequestItem(models.Model):
     )
     time_completed = models.DateField(blank=True, null=True)
 
+    @property
+    def response_time(self):
+        """The number of days it took for you to get responsive records."""
+        if self.time_completed is None:
+            return None
+        return (self.time_completed - self.request_content.date_filed.date()).days
+
     def __str__(self):
         return f"{self.request_content} ({self.agency})"
 
@@ -186,8 +193,8 @@ class Source(models.Model):
         REAL_PERSON = "rp", _("Person affected (anecdotal source)")
         EXPERT = "e", _("Expert")
         PR = "pr", _("Spokesperson, PR-Rep")
-        FOIA = "f", _("Public Records officer")
-        OFFICIAL = "o", _("Public/Company official")
+        FOIA = "f", _("Public Records Officer")
+        OFFICIAL = "o", _("Public/Company Official")
         INSIDER = "i", _("Company or business employee (current or former)")
 
     first_name = models.CharField(max_length=100, blank=True)
@@ -209,6 +216,12 @@ class Source(models.Model):
         )
     time_added = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
+
+    @property
+    def entity_name(self):
+        if self.entity:
+            return str(self.entity)
+        return "-"
 
     @property
     def full_name(self):
@@ -273,6 +286,7 @@ class Contact(models.Model):
     transcript = models.FileField(upload_to="audio_transcript/", blank=True, null=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     related_project = models.ForeignKey("Project", blank=True, null=True, on_delete=models.CASCADE)
+    related_foia_request = models.ForeignKey("FoiaRequestItem", verbose_name="Related FOIA Request", on_delete=models.CASCADE, blank=True, null=True, help_text="If this contact is related to a FOIA request (e.g. to nag a FOIA officer), note that contact here")
 
     def interview_type(self):
         interview_description = ""

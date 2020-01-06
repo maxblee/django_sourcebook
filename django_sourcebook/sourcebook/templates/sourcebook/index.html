@@ -1,0 +1,27 @@
+{% extends "base_generic.html" %}
+{% block page_title %}Sourcebook{% endblock %}
+{% block sidenav %}
+{% include "sourcebook/_sidenav.html" %}
+{% endblock %}
+{% block container %}
+<h1>Sources and Interviews</h1>
+<ul class="stat-container no-bullet">
+    {% include "_stat_item.html" with stat=total_sources stat_description="sources" %}
+    {% include "_stat_item.html" with stat=new_sources stat_description="sources added in the past week" %}
+    {% include "_stat_item.html" with stat=pct_men_overall stat_description="percent of sources are men" %}
+    {% include "_stat_item.html" with stat=pct_white_overall stat_description="percent of sources are white" %}
+    {% include "_stat_item.html" with stat=pct_men_story stat_description="percent of the sources in your stories are men" %}
+    {% include "_stat_item.html" with stat=pct_white_story stat_description="percent of the sources in your stories are white" %}
+</ul>
+<p>Note: all race and gender statistics exclude people whose race or gender you do not know.</p>
+<div>
+    <h2 class="text-center">Search for Sources</h2>
+    <form action="{% url 'source_list' %}" method="GET">
+        <label for="source-search">
+            <input name="q" id="source-search" type="text">
+        </label>
+    </form>
+</div>
+<div>
+</div>
+{% endblock %}

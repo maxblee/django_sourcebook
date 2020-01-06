@@ -8,19 +8,61 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/foundation-sites@6.6.1/dist/css/foundation.min.css" integrity="sha256-Q2fXBbKhtsyhYrSLa7hXCNV+FdhbQhyrjks8Kic0u/U=" crossorigin="anonymous">
     <style>
     * {
-        margin-left: 15px;
+        margin: 0.3rem;
+    }
+    .menu-item a {
+        color: #F8F8FF;
+    }
+    .sidenav {
+        width: 10%;
+    }
+
+    .stat-container {
+        display: table;
+    }
+    .stat-item {
+        margin-left: 1rem;
     }
     </style>
     {% block static_content %}{% endblock %}
 </head>
 <body>
+    <p><a class="show-on-focus" href="#main">Skip to content</a></p>
     <header>
-
+        <div data-sticky-container>
+            <div class="title-bar" data-sticky data-btm-anchor="content:bottom">
+                <div class="title-bar-left menu-item"><a href="/">FOIA Manager</a></div>
+                <div class="title-bar-right">
+                    <ul class="menu align-right">
+                        <li class="menu-item"><a href="{% url 'source_index' %}">Sourcebook</a></li>
+                        <li class="menu-item"><a href="{% url 'project_index' %}">Projects</a></li>
+                        <li class="menu-item"><a href="{% url 'foia_index' %}">FOIA</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </header>
-    <main>
-        {% block container %}
-        {% endblock %}
-    </main>
+    <div class="page-content grid-x grid-margin-x">
+        <nav class="cell shrink">
+            {% block sidenav %}
+            {% endblock %}
+        </nav>
+        <main id="main" class="cell auto">
+            {% block pagination %}
+            {% if is_paginated %}
+            <div class="pagination-container text-right">
+                Page {{page_obj.number}} of {{page_obj.paginator.num_pages}}
+                <ul class="pagination">
+                    {% for page in page_obj.paginator.page_range %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {% endblock %}
+            {% block container %}
+            {% endblock %}
+        </main>
+    </div>
     <footer>
 
     </footer>
