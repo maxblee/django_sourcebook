@@ -1,0 +1,29 @@
+{% extends "base_generic.html" %}
+{% block page_title %}FOIA Requests{% endblock %}
+{% block sidenav %}{% include "foia/_sidenav.html" %}{% endblock sidenav %}
+{% block container %}
+<h1>FOIA Requests you've filed</h1>
+{% if query %}
+<div class="query-results text-center">
+    <p class="lead">Your search for '{{query}}' yielded {{count}} request submissions and {{count_requests}} total requests.</p>
+</div>
+{% endif %}
+<div>
+    {% for item in object_list %}
+    <div>
+        <div>
+            <b class="h4">{{item.short_description}}</b>
+        </div>
+        <div>
+            <div>
+                <span class="h6">Date Filed:</span> {{item.date_filed}}
+            </div>
+        </div>
+        <div class="search-long-text">
+            {{item.requested_records}}
+        </div>
+    </div>
+</div>
+    {% endfor %}
+</div>
+{% endblock %}

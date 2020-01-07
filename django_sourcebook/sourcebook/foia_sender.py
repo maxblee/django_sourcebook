@@ -8,14 +8,21 @@ import os
 import os.path
 import re
 import sys
+
 sys.path.append("..")
-from django_sourcebook.settings import MEDIA_ROOT, FEDERAL_FOIA_TEMPLATE, BASE_FOIA_TEMPLATE, FROM_EMAIL
+from django_sourcebook.settings import (
+    MEDIA_ROOT,
+    FEDERAL_FOIA_TEMPLATE,
+    BASE_FOIA_TEMPLATE,
+    FROM_EMAIL,
+)
 from django.template import Context, Template
 from utils import auth
 import mammoth
 
 GMAIL_SERVICE = auth.get_service()
 TEMPLATE_INFO = re.compile(r"{{\s*([a-zA-Z_]+)\s*}}")
+
 
 class FoiaHandler(abc.Mapping):
     """A class designed to help file FOIA requests, given objects describing the content of the requests.
@@ -27,6 +34,7 @@ class FoiaHandler(abc.Mapping):
     `recipient_info`: `FoiaRequestItem`
         Information about the recipient (an `Entity` object and the name of the FOIA officer)
     """
+
     def __init__(self, request_body, recipient_info):
         # assume we're filing based on a specific request
         self.sending_base_request = False
@@ -40,14 +48,16 @@ class FoiaHandler(abc.Mapping):
             "expedited_processing": request_body.expedited_processing,
             "fee_waiver": request_body.fee_waiver,
             "foia_email": recipient_agency.foia_email,
-            "recipient_name": recipient_info.recipient_name if recipient_info.recipient_name != "" else "Public Records Officer",
+            "recipient_name": recipient_info.recipient_name
+            if recipient_info.recipient_name != ""
+            else "Public Records Officer",
             "public_records_act": public_records_act,
             "max_response_time": max_response_time,
             "agency_name": recipient_agency.name,
             "agency_street_address": recipient_agency.street_address,
             "agency_municipality": recipient_agency.municipality,
             "state": str(recipient_agency.state),
-            "zip_code": recipient_agency.zip_code
+            "zip_code": recipient_agency.zip_code,
         }
 
     def __getitem__(self, item):
@@ -65,7 +75,7 @@ class FoiaHandler(abc.Mapping):
             return max_resp_time
         interval = "business days" if agency.state.business_days else "days"
         return str(max_resp_time) + " " + interval
-    
+
     def _get_pra_name(self, agency):
         """Returns the name of the public records act (for the subject line) given the Entity object (for the agency)"""
         if agency.is_federal:
@@ -83,7 +93,9 @@ class FoiaHandler(abc.Mapping):
             expected_path = os.path.join(template_directory, FEDERAL_FOIA_TEMPLATE)
             if not os.path.exists(expected_path):
                 if not os.path.exists(fallback):
-                    raise OSError("Could not find federal FOIA. Check BASE_FOIA_TEMPLATE and FEDERAL_FOIA_TEMPLATE in settings.")
+                    raise OSError(
+                        "Could not find federal FOIA. Check BASE_FOIA_TEMPLATE and FEDERAL_FOIA_TEMPLATE in settings."
+                    )
                 self.sending_base_request = True
                 return fallback
             return expected_path
@@ -91,11 +103,15 @@ class FoiaHandler(abc.Mapping):
             expected_path = os.path.join(MEDIA_ROOT, str(agency.state.foia_template))
             if expected_path != "":
                 if not os.path.exists(expected_path):
-                    raise OSError("Could not find FOIA template at {}".format(str(expected_path)))
+                    raise OSError(
+                        "Could not find FOIA template at {}".format(str(expected_path))
+                    )
                 return expected_path
             else:
                 if not os.path.exists(fallback):
-                    raise OSError("Could not find the base template. Hint: Try checking the value of BASE_FOIA_TEMPLATE in settings")
+                    raise OSError(
+                        "Could not find the base template. Hint: Try checking the value of BASE_FOIA_TEMPLATE in settings"
+                    )
                 self.sending_base_request = True
                 return fallback
 
@@ -112,21 +128,36 @@ class FoiaHandler(abc.Mapping):
 
     def file_request(self):
         send_labels = [
-            label_id for _label, label_id in auth.get_label_ids(GMAIL_SERVICE).items()
+            label_id
+            for _label, label_id in auth.get_label_ids(GMAIL_SERVICE).items()
             if _label in ["FOIA", "FOIA - UNFINISHED"]
-            ]
+        ]
         # https://stackoverflow.com/questions/35873847/mime-multipart-being-sent-as-noname-on-python-3
         message = MIMEMultipart("alternative")
         message["to"] = self["foia_email"]
         message["from"] = FROM_EMAIL
-        message["subject"] = f"{self['public_records_act']} Request: {self._parse_field('subject_line')}"
+        message[
+            "subject"
+        ] = f"{self['public_records_act']} Request: {self._parse_field('subject_line')}"
         html_content, text_content = self.compose_request()
         mime_text = MIMEText(text_content, "text")
         mime_html = MIMEText(html_content, "html")
         message.attach(mime_text)
         message.attach(mime_html)
-         # This part of the solution from https://stackoverflow.com/questions/42601324/python-3-6-gmail-api-send-email-with-attachement
-        final_message = {"raw":base64.urlsafe_b64encode(message.as_bytes()).decode()}
-        sent_message = GMAIL_SERVICE.users().messages().send(userId="me", body=final_message).execute()
-        sent_message = GMAIL_SERVICE.users().messages().modify(userId="me", id=sent_message["id"], body={"addLabelIds":send_labels}).execute()
+        # This part of the solution from https://stackoverflow.com/questions/42601324/python-3-6-gmail-api-send-email-with-attachement
+        final_message = {"raw": base64.urlsafe_b64encode(message.as_bytes()).decode()}
+        sent_message = (
+            GMAIL_SERVICE.users()
+            .messages()
+            .send(userId="me", body=final_message)
+            .execute()
+        )
+        sent_message = (
+            GMAIL_SERVICE.users()
+            .messages()
+            .modify(
+                userId="me", id=sent_message["id"], body={"addLabelIds": send_labels}
+            )
+            .execute()
+        )
         return sent_message

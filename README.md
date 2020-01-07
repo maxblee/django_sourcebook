@@ -19,6 +19,7 @@ I am hoping to build this out a lot more thoroughly and to add in some testing t
 ## Setup and Installation
 
 This project requires PostGreSQL and Python 3.6 or greater. You will need to have them installed prior to running this program.
+
 In addition, you will need to set up a new database for the project and enter information about the database in your project
 `settings` folder. By default, this grabs the username and password for your database from environment settings and specifies
 that the name of your database is `sourcebook`:
@@ -43,6 +44,8 @@ In addition, you should set the GMail address you want your FOIA requests sent f
 ```python
 FROM_EMAIL = "givemerecords@gmail.com"
 ```
+
+And you will also need to set up the `pg_trgm` extension, which helps improve the functionality and speed of our searches.
 
 After setting up your database, you should run a virtual environment, migrate your changes into your database, add
 your GMail credentials so you can file FOIA requests, and load initial data into your database (this is mostly default information about states and their public records laws). Assuming you have `pipenv` and `make` installed,

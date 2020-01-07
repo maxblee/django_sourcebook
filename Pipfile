@@ -13,6 +13,11 @@ hypothesis = "*"
 black = "==19.10b0"
 django-extensions = "*"
 pygraphviz = "*"
+pip-licenses = "*"
+axe-selenium-python = "*"
+selenium = "*"
+pytest-django = "*"
+pytest-cov = "*"
 
 [packages]
 django = "*"

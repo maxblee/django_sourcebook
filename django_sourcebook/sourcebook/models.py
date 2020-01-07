@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.postgres.search import SearchVectorField
+from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -8,12 +10,16 @@ from taggit.managers import TaggableManager
 from django_better_admin_arrayfield.models.fields import ArrayField
 import reversion
 import datetime
+
 # import top-level package utilities
 import sys
+
 sys.path.append("..")
 import utils.validators
+
 # Create your models here.
 RCFP_BASE_URL = "https://www.rcfp.org/open-government-guide/"
+
 
 class FoiaStatus(models.TextChoices):
     NO_RESPONSE = "nr", _("no response")
@@ -24,32 +30,38 @@ class FoiaStatus(models.TextChoices):
     APPEALED = "ap", _("appealed")
     SUED = "s", _("sued")
 
+
 def get_current_date():
     return timezone.now().date()
 
+
 @reversion.register(fields=["foia_template"])
 class State(models.Model):
-    fips_code = models.CharField(max_length=2, validators=[utils.validators.validate_fips])
-    public_records_act_name = models.CharField("name of state public records act", max_length=200, blank=True, null=True)
+    fips_code = models.CharField(
+        max_length=2, validators=[utils.validators.validate_fips]
+    )
+    public_records_act_name = models.CharField(
+        "name of state public records act", max_length=200, blank=True, null=True
+    )
     foia_template = models.FileField(
-        upload_to="foia_templates/", 
+        upload_to="foia_templates/",
         verbose_name="Public Records act template",
         validators=[utils.validators.validate_template_extension],
         blank=True,
-        null=True
+        null=True,
     )
     # most states have a maximum response time allowed for agencies to respond to public records requests
     # but some do not :(
     maximum_response_time = models.PositiveSmallIntegerField(
         help_text="What is the maximum response time allowed under this state's public records act?",
         blank=True,
-        null=True
+        null=True,
     )
     # states differ in whether the response time refers to business days or total days
     business_days = models.BooleanField(
         blank=True,
         null=True,
-        help_text="Is the response time the number of business days or actual days to respond to requests?"
+        help_text="Is the response time the number of business days or actual days to respond to requests?",
     )
 
     def __str__(self):
@@ -83,7 +95,9 @@ class Entity(models.Model):
     # county or county equivalent
     locality = models.CharField(max_length=100, blank=True)
     state = models.ForeignKey(State, blank=True, null=True, on_delete=models.CASCADE)
-    zip_code = models.CharField(max_length=9, validators=[utils.validators.ZipCodeValidator])
+    zip_code = models.CharField(
+        max_length=9, validators=[utils.validators.ZipCodeValidator]
+    )
     foia_email = models.EmailField("FOIA e-mail", null=True, blank=True)
     is_federal = models.BooleanField("Federal Agency?", default=False)
     is_public_body = models.BooleanField("Public Body?", default=False)
@@ -94,35 +108,47 @@ class Entity(models.Model):
     class Meta:
         verbose_name_plural = "entities"
 
+
 class FoiaContent(models.Model):
     """An abstract base class representing the core content of a FOIA Request.
 
     Used by both `FoiaRequestBase` and `ScheduledFoiaContent`."""
+
     short_description = models.CharField(max_length=100)
     requested_formats = TaggableManager(verbose_name="Requested format")
     requested_records = models.TextField()
     expedited_processing = models.TextField(
-        verbose_name="justification for expedited processing",
-        blank=True
+        verbose_name="justification for expedited processing", blank=True
     )
-    fee_waiver = models.TextField(
-        verbose_name="fee waiver justification",
-        blank=True
+    fee_waiver = models.TextField(verbose_name="fee waiver justification", blank=True)
+    related_project = models.ForeignKey(
+        "Project", blank=True, null=True, on_delete=models.CASCADE
     )
-    related_project = models.ForeignKey("Project", blank=True, null=True, on_delete=models.CASCADE)
+    search_vector = SearchVectorField(null=True, editable=False)
 
     class Meta:
         abstract = True
+        indexes = [GinIndex(fields=["search_vector"])]
+
 
 class ScheduledFoiaContent(FoiaContent):
     date_started = models.DateField(auto_now_add=True)
-    date_stopped = models.DateField(null=True, blank=True, help_text="When do you want to stop running this scheduler?")
-    request_frequency = models.DurationField(help_text="How frequently do you want to have this request filed?")
-    request_period = models.BooleanField("Have request go out to all records filed since the last time you ran the request")
+    date_stopped = models.DateField(
+        null=True,
+        blank=True,
+        help_text="When do you want to stop running this scheduler?",
+    )
+    request_frequency = models.DurationField(
+        help_text="How frequently do you want to have this request filed?"
+    )
+    request_period = models.BooleanField(
+        "Have request go out to all records filed since the last time you ran the request"
+    )
 
 
 class FoiaRequestBase(FoiaContent):
     """Represents the base content of a FOIA Request (i.e. everything but the entity/entities the request is going to)"""
+
     date_filed = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -131,29 +157,46 @@ class FoiaRequestBase(FoiaContent):
     class Meta:
         verbose_name = "FOIA Request Body"
         verbose_name_plural = "FOIA Request Bodies"
+        ordering = ("-date_filed",)
+
 
 class ScheduledFoiaAgency(models.Model):
     request_content = models.ForeignKey(ScheduledFoiaContent, on_delete=models.CASCADE)
     agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
     recipient_name = models.CharField("name of public records officer", max_length=150)
 
-@reversion.register(fields=["status", "fee_assessed", "modifications", "expedited_processing_granted"])
+
+@reversion.register(
+    fields=["status", "fee_assessed", "modifications", "expedited_processing_granted"]
+)
 class FoiaRequestItem(models.Model):
     """A model representing a single FOIA request to a single agency"""
-    request_content = models.ForeignKey(FoiaRequestBase, on_delete=models.CASCADE)
+
+    request_content = models.ForeignKey(
+        FoiaRequestBase, on_delete=models.CASCADE, related_name="foia_requests"
+    )
     agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
     # this doesn't link to a source because in a lot of cases, we won't know the officer's name
     # and we can link our actual contacts to a FOIA request.
-    recipient_name = models.CharField("name of public records officer", max_length=150, blank=True)
-    status = models.CharField(max_length=2, choices=FoiaStatus.choices, default=FoiaStatus.NO_RESPONSE)
-    expedited_processing_granted = models.BooleanField(default=False, help_text="Did the agency grant your request for expedited processing?")
-    fee_assessed = models.DecimalField(max_digits=9, decimal_places=2, blank=True, null=True)
+    recipient_name = models.CharField(
+        "name of public records officer", max_length=150, blank=True
+    )
+    status = models.CharField(
+        max_length=2, choices=FoiaStatus.choices, default=FoiaStatus.NO_RESPONSE
+    )
+    expedited_processing_granted = models.BooleanField(
+        default=False,
+        help_text="Did the agency grant your request for expedited processing?",
+    )
+    fee_assessed = models.DecimalField(
+        max_digits=9, decimal_places=2, blank=True, null=True
+    )
     modifications = ArrayField(
         models.CharField(max_length=100),
         default=list,
         blank=True,
         null=True,
-        help_text="list any modifications you've made to your original request"
+        help_text="list any modifications you've made to your original request",
     )
     time_completed = models.DateField(blank=True, null=True)
 
@@ -170,9 +213,9 @@ class FoiaRequestItem(models.Model):
     class Meta:
         verbose_name = "FOIA Request"
 
+
 @reversion.register
 class Source(models.Model):
-
     class Gender(models.TextChoices):
         MAN = "m", _("Man")
         WOMAN = "w", _("Woman")
@@ -189,6 +232,7 @@ class Source(models.Model):
         """The category of a given source. Use `FOIA Officer` when applicable; otherwise,
         use whichever category fits best.
         """
+
         DATA_ADMIN = "db", _("Database administrator")
         REAL_PERSON = "rp", _("Person affected (anecdotal source)")
         EXPERT = "e", _("Expert")
@@ -206,14 +250,13 @@ class Source(models.Model):
     cell_number = PhoneNumberField(blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     address = models.CharField(max_length=400, blank=True)
-    twitter = models.CharField(max_length=16, blank=True,  validators=[utils.validators.TwitterHandleValidator])
+    twitter = models.CharField(
+        max_length=16, blank=True, validators=[utils.validators.TwitterHandleValidator]
+    )
     gender = models.CharField(max_length=1, choices=Gender.choices)
     race = models.CharField(max_length=3, choices=Race.choices)
     source_type = models.CharField(max_length=2, choices=SourceType.choices)
-    notes = models.TextField(
-        help_text="Random notes about this person.",
-        blank=True
-        )
+    notes = models.TextField(help_text="Random notes about this person.", blank=True)
     time_added = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
 
@@ -234,11 +277,12 @@ class Source(models.Model):
         if self.full_name is None:
             if self.entity is None:
                 return ""
-            return f"Unknown ({self.entity.name})" 
+            return f"Unknown ({self.entity.name})"
         return self.full_name
 
     class Meta:
         ordering = ["last_name", "first_name"]
+
 
 @reversion.register(fields=["answered", "ground_rules"])
 class Contact(models.Model):
@@ -249,44 +293,44 @@ class Contact(models.Model):
         ("p", "Phone"),
         ("t", "Text"),
         ("i", "In-person"),
-        ("l", "Letter")
+        ("l", "Letter"),
     )
-    
+
     GROUND_RULES_CHOICES = (
         ("otr", "On-the-record"),
         ("bg", "On background"),
         ("db", "Deep Background"),
-        ("or", "Off-the-record")
+        ("or", "Off-the-record"),
     )
 
     time = models.DateTimeField(
-        default=timezone.now,
-        help_text="The time of the contact"
+        default=timezone.now, help_text="The time of the contact"
     )
-    contact_method = models.CharField(
-        max_length=1,
-        choices=CONTACT_METHOD_CHOICES
-        )
+    contact_method = models.CharField(max_length=1, choices=CONTACT_METHOD_CHOICES)
     answered = models.BooleanField(
         help_text="Has this person answered your attempt to reach them?"
     )
-    short_description = models.CharField(
-        max_length=500,
-    )
-    addl_notes = models.TextField(
-        "additional notes", 
-        blank=True
-        )
+    short_description = models.CharField(max_length=500,)
+    addl_notes = models.TextField("additional notes", blank=True)
     ground_rules = models.CharField(
-        max_length=3,
-        choices=GROUND_RULES_CHOICES,
-        default="otr"
+        max_length=3, choices=GROUND_RULES_CHOICES, default="otr"
     )
     audio_file = models.FileField(upload_to="audio_files/", blank=True, null=True)
     transcript = models.FileField(upload_to="audio_transcript/", blank=True, null=True)
-    source = models.ForeignKey(Source, on_delete=models.CASCADE)
-    related_project = models.ForeignKey("Project", blank=True, null=True, on_delete=models.CASCADE)
-    related_foia_request = models.ForeignKey("FoiaRequestItem", verbose_name="Related FOIA Request", on_delete=models.CASCADE, blank=True, null=True, help_text="If this contact is related to a FOIA request (e.g. to nag a FOIA officer), note that contact here")
+    source = models.ForeignKey(
+        Source, on_delete=models.CASCADE, related_name="contacts"
+    )
+    related_project = models.ForeignKey(
+        "Project", blank=True, null=True, on_delete=models.CASCADE
+    )
+    related_foia_request = models.ForeignKey(
+        "FoiaRequestItem",
+        verbose_name="Related FOIA Request",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        help_text="If this contact is related to a FOIA request (e.g. to nag a FOIA officer), note that contact here",
+    )
 
     def interview_type(self):
         interview_description = ""
@@ -295,7 +339,7 @@ class Contact(models.Model):
         contact_method = dict(self.CONTACT_METHOD_CHOICES)[self.contact_method]
         interview_description += " " + contact_method
         # phone or in-person
-        if self.contact_method in { "p", "i" }:
+        if self.contact_method in {"p", "i"}:
             interview_description += " Interview"
             if not self.answered:
                 interview_description += " Attempt"
@@ -304,8 +348,8 @@ class Contact(models.Model):
     def __str__(self):
         return f"{self.interview_type()} with {self.source} on {self.time}"
 
-class Story(models.Model):
 
+class Story(models.Model):
     class StoryType(models.TextChoices):
         INVESTIGATIVE = "i", _("investigative")
         EXPLANATORY = "x", _("explanatory")
@@ -318,7 +362,9 @@ class Story(models.Model):
     publication = models.ForeignKey("Publication", on_delete=models.CASCADE)
     sources = models.ManyToManyField(Source)
     interviews = models.ManyToManyField(Contact)
-    project = models.ForeignKey("Project", on_delete=models.CASCADE, blank=True, null=True)
+    project = models.ForeignKey(
+        "Project", on_delete=models.CASCADE, blank=True, null=True
+    )
     story_type = models.CharField(max_length=1, choices=StoryType.choices)
     tags = TaggableManager()
     publication_date = models.DateField(default=get_current_date)
@@ -329,15 +375,15 @@ class Story(models.Model):
     class Meta:
         verbose_name_plural = "stories"
 
+
 @reversion.register
 class Project(models.Model):
     short_description = models.CharField(
-        max_length=100,
-        help_text="Enter a 6-word description of the piece"
-        )
+        max_length=100, help_text="Enter a 6-word description of the piece"
+    )
     long_description = models.TextField(
         help_text="Provide a more detailed description of the project"
-        )
+    )
     tags = TaggableManager()
     completed = models.BooleanField(default=False)
     launch_time = models.DateTimeField(auto_now_add=True)
@@ -346,19 +392,26 @@ class Project(models.Model):
     def __str__(self):
         return self.short_description
 
+
 class Document(models.Model):
     name = models.CharField(max_length=100)
     short_description = models.CharField(max_length=400)
-    addl_notes = models.TextField(
-        "additional notes",
-        blank=True
-        )
+    addl_notes = models.TextField("additional notes", blank=True)
     doc_file = models.FileField("file", upload_to="documents/")
-    foia_request = models.ForeignKey(FoiaRequestItem, verbose_name="FOIA Request", on_delete=models.CASCADE, blank=True, null=True)
-    related_project = models.ForeignKey("Project", blank=True, null=True, on_delete=models.CASCADE)
+    foia_request = models.ForeignKey(
+        FoiaRequestItem,
+        verbose_name="FOIA Request",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+    )
+    related_project = models.ForeignKey(
+        "Project", blank=True, null=True, on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return self.name
+
 
 class Publication(models.Model):
     name = models.CharField(max_length=100)
@@ -366,6 +419,7 @@ class Publication(models.Model):
 
     def __str__(self):
         return self.name
+
 
 @reversion.register
 class ProjectTask(models.Model):

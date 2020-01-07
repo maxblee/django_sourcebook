@@ -17,11 +17,9 @@
 <div>
     <h2 class="text-center">Search for Sources</h2>
     <form action="{% url 'source_list' %}" method="GET">
-        <label for="source-search">
-            <input name="q" id="source-search" type="text">
+        <label for="source-search"><span class="show-for-sr">Search for sources by name, title, email address, or phone number</span>
+            <input name="q" id="source-search" type="text" placeholder="Enter name, title, email address, or phone number">
         </label>
     </form>
-</div>
-<div>
 </div>
 {% endblock %}

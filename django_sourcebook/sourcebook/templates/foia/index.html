@@ -11,5 +11,12 @@
     <li class="stat-item"><span class="stat">{{avg_resp_time}} days</span><span class="subheader h3">Average completion time</span></li>
     <li class="stat-item"><span class="stat">{{max_resp_time}} days</span><span class="subheader h3">Maximum completion time</span></li>
 </ul>
-<h2 class="text-center">Search for Requests</h2>
+<div>
+    <h2 class="text-center">Search for Public Records Requests</h2>
+    <form action="{% url 'foia_request_list' %}" method="GET">
+        <label for="source-search"><span class="show-for-sr">Search for public records requests based on the content of the request</span>
+            <input name="q" id="source-search" type="text">
+        </label>
+    </form>
+</div>
 {% endblock %}

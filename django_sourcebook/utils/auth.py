@@ -15,6 +15,7 @@ import oauth2client.file
 import oauth2client.tools
 from oauth2client.client import OAuth2WebServerFlow
 import sys
+
 sys.path.append("..")
 from django_sourcebook.settings import CREDENTIALS
 
@@ -22,9 +23,10 @@ CREDENTIAL_JSON = os.path.join(CREDENTIALS, "credentials.json")
 CREDENTIAL_DAT = os.path.join(CREDENTIALS, "credentials.dat")
 
 SCOPES = {
-    "https://www.googleapis.com/auth/gmail.modify", 
-    "https://www.googleapis.com/auth/gmail.labels"
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.labels",
 }
+
 
 def get_credentials():
     """Returns Google API Credentials, storing data in credentials directory"""
@@ -32,39 +34,41 @@ def get_credentials():
     client_json = json.load(open(CREDENTIAL_JSON))["installed"]
     client_id, client_secret = client_json["client_id"], client_json["client_secret"]
     credentials = storage.get()
-    if credentials is None or credentials.invalid or \
-        not credentials.has_scopes(SCOPES):
+    if credentials is None or credentials.invalid or not credentials.has_scopes(SCOPES):
         flow = OAuth2WebServerFlow(client_id, client_secret, SCOPES)
         credentials = oauth2client.tools.run_flow(
             flow,
             storage,
-            oauth2client.tools.argparser.parse_args(["--noauth_local_webserver"])
+            oauth2client.tools.argparser.parse_args(["--noauth_local_webserver"]),
         )
     return credentials
+
 
 def get_service(credentials=get_credentials()):
     """Gets GMail service, given credentials"""
     return apiclient.discovery.build("gmail", "v1", credentials=credentials)
+
 
 def add_labels(service):
     """Adds labels for handling FOIA requests given the service (e.g. from `get_service`)"""
     foia_labels = ["FOIA", "FOIA - DONE", "FOIA - NA", "FOIA - UNFINISHED"]
     all_labels = service.users().labels().list(userId="me").execute()["labels"]
     user_added_labels = frozenset(
-        { label["name"] for label in all_labels if label["type"] == "user" }
+        {label["name"] for label in all_labels if label["type"] == "user"}
     )
     print("Creating Labels...")
     for label in foia_labels:
         if not label in user_added_labels:
             new_label = {
-                "labelListVisibility":"labelShow",
-                "messageListVisibility":"show",
-                "name":label
+                "labelListVisibility": "labelShow",
+                "messageListVisibility": "show",
+                "name": label,
             }
             service.users().labels().create(userId="me", body=new_label).execute()
             print(label)
 
+
 def get_label_ids(service):
     """Returns labelIds given the service you're using. Used to add labels to messages"""
     all_labels = service.users().labels().list(userId="me").execute()
-    return { label["name"]: label["id"] for label in all_labels["labels"] }
+    return {label["name"]: label["id"] for label in all_labels["labels"]}
