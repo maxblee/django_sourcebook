@@ -22,6 +22,16 @@
         <div class="search-long-text">
             {{item.requested_records}}
         </div>
+        <div>
+            <span>Filed to {{ item.foia_requests.all.count }} agencies, including:</span>
+            <ul>
+                {% for foia in item.foia_requests.all %}
+                    {% if forloop.counter <= 3 %}
+                    <li>{{foia.agency}}</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
     </div>
 </div>
     {% endfor %}

@@ -7,7 +7,7 @@ from django.views.generic import ListView
 class FoiaRequestListView(ListView):
     model = FoiaRequestBase
     template_name = "foia/foia_request_list.html"
-    paginate_by = 1
+    paginate_by = 10
 
     def get_queryset(self):
         query = self.request.GET.get("q")
@@ -26,6 +26,6 @@ class FoiaRequestListView(ListView):
         context["query"] = self.request.GET.get("q")
         context["count"] = results.count()
         context["count_requests"] = results.prefetch_related(
-            "foiarequestitem_set"
+            "foiarequests"
         ).count()
         return context

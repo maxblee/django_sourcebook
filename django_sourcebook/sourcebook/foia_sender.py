@@ -23,6 +23,8 @@ import mammoth
 GMAIL_SERVICE = auth.get_service()
 TEMPLATE_INFO = re.compile(r"{{\s*([a-zA-Z_]+)\s*}}")
 
+class FoiaTemplateError(Exception):
+    pass
 
 class FoiaHandler(abc.Mapping):
     """A class designed to help file FOIA requests, given objects describing the content of the requests.
@@ -33,11 +35,14 @@ class FoiaHandler(abc.Mapping):
         The content of the overarching request (so everything but information about the agency and FOIA officer)
     `recipient_info`: `FoiaRequestItem`
         Information about the recipient (an `Entity` object and the name of the FOIA officer)
+    `**kwargs`
+        Additional parameters; primarily intended to allow for CC and BCC
     """
 
-    def __init__(self, request_body, recipient_info):
+    def __init__(self, request_body, recipient_info, **kwargs):
         # assume we're filing based on a specific request
         self.sending_base_request = False
+        self.params = kwargs
         recipient_agency = recipient_info.agency
         self.template_path = self._get_template_path(recipient_agency)
         public_records_act = self._get_pra_name(recipient_agency)
@@ -93,23 +98,25 @@ class FoiaHandler(abc.Mapping):
             expected_path = os.path.join(template_directory, FEDERAL_FOIA_TEMPLATE)
             if not os.path.exists(expected_path):
                 if not os.path.exists(fallback):
-                    raise OSError(
+                    raise FoiaTemplateError(
                         "Could not find federal FOIA. Check BASE_FOIA_TEMPLATE and FEDERAL_FOIA_TEMPLATE in settings."
                     )
                 self.sending_base_request = True
                 return fallback
             return expected_path
+        elif agency.state is None:
+            raise FoiaTemplateError("The agency either must be a federal agency or correspond be part of a state (or D.C.)")
         else:
             expected_path = os.path.join(MEDIA_ROOT, str(agency.state.foia_template))
             if expected_path != "":
                 if not os.path.exists(expected_path):
-                    raise OSError(
+                    raise FoiaTemplateError(
                         "Could not find FOIA template at {}".format(str(expected_path))
                     )
                 return expected_path
             else:
                 if not os.path.exists(fallback):
-                    raise OSError(
+                    raise FoiaTemplateError(
                         "Could not find the base template. Hint: Try checking the value of BASE_FOIA_TEMPLATE in settings"
                     )
                 self.sending_base_request = True
@@ -139,6 +146,10 @@ class FoiaHandler(abc.Mapping):
         message[
             "subject"
         ] = f"{self['public_records_act']} Request: {self._parse_field('subject_line')}"
+        if "cc" in self.params:
+            message["cc"] = self.params["cc"]
+        if "bcc" in self.params:
+            message["bcc"] = self.params["bcc"]
         html_content, text_content = self.compose_request()
         mime_text = MIMEText(text_content, "text")
         mime_html = MIMEText(html_content, "html")

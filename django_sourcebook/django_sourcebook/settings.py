@@ -23,9 +23,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = "tuj(w@unir75$i^o!gp=4)5d-4d4shdpo4zz+lh%w9&_z_3xj="
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ["localhost"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -86,7 +86,7 @@ DATABASES = {
         "USER": os.environ["POSTGRES_USER"],
         "PASSWORD": os.environ["POSTGRES_PWD"],
         "HOST": "localhost",
-        "PORT": "",
+        "PORT": os.environ["POSTGRES_PORT"],
     }
 }
 

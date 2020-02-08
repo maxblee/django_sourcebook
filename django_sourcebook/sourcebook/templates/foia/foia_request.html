@@ -15,6 +15,9 @@
 {% block container %}
 <h1>Batch File Public Records Request(s)</h1>
 <form method="POST" action="">
+    {% for message in messages %}
+        <span class="{{message.tags}}">{{ message }}</span>
+    {% endfor %}
     {% csrf_token %}
     {{ foia_base.non_field_errors }}
     {{ foia_formset.non_field_errors }}

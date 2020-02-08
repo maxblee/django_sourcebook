@@ -13,3 +13,5 @@ django_sourcebook/credentials/*
 
 geckodriver.log
 nohup.out
+
+*.code-workspace

@@ -5,12 +5,18 @@
 {% endblock %}
 {% block container %}
 <h1>Public Records Requests</h1>
+{% if num_requests == 0 %}
+<div class="stat-container no-bullet empty-stat">
+    <p class="h3">You have not filed any public records requests yet.</p>
+</div>
+{% else %}
 <ul class="stat-container no-bullet">
     <li class="stat-item"><span class="stat">{{num_requests}} </span><span class="subheader h3">requests filed</span></li>
     <li class="stat-item"><span class="stat">{{num_cur_yr}} </span><span class="subheader h3">requests filed this year</span></li>
     <li class="stat-item"><span class="stat">{{avg_resp_time}} days</span><span class="subheader h3">Average completion time</span></li>
     <li class="stat-item"><span class="stat">{{max_resp_time}} days</span><span class="subheader h3">Maximum completion time</span></li>
 </ul>
+{% endif %}
 <div>
     <h2 class="text-center">Search for Public Records Requests</h2>
     <form action="{% url 'foia_request_list' %}" method="GET">
