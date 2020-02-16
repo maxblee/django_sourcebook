@@ -167,6 +167,10 @@ def index(request):
 def create_foia_request(request):
     if request.method == "POST":
         params = {}
+        if "cc" in request.POST:
+            params["cc"] = request.POST["cc"]
+        if "bcc" in request.POST:
+            params["bcc"] = request.POST["bcc"]
         base_request = FoiaRequestBaseForm(request.POST)
         agency_requests = FoiaRequestFormSet(request.POST)
         if base_request.is_valid() and agency_requests.is_valid():
@@ -179,10 +183,6 @@ def create_foia_request(request):
                 current_foia.status = FoiaStatus.NO_RESPONSE
                 current_foia.expedited_processing_granted = False
                 current_foia.save()
-                if "cc" in request.POST:
-                    params["cc"] = request.POST["cc"]
-                if "bcc" in request.POST:
-                    params["bcc"] = request.POST["bcc"]
                 try:
                     foia_email = foia_sender.FoiaHandler(foia_request, current_foia, **params)
                     foia_email.file_request()

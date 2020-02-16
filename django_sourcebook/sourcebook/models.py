@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.postgres.search import SearchVectorField
 from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import RegexValidator
@@ -108,6 +109,78 @@ class Entity(models.Model):
     class Meta:
         verbose_name_plural = "entities"
 
+@reversion.register
+class Source(models.Model):
+    class Gender(models.TextChoices):
+        MAN = "m", _("Man")
+        WOMAN = "w", _("Woman")
+        NONCONFORMING = "n", _("Nonconforming")
+        INAPPLICABLE = "i", _("N/A")
+        UNKNOWN = "u", _("Unknown")
+
+    class Race(models.TextChoices):
+        POC = "poc", _("Person of color")
+        WHITE = "w", _("White")
+        NOT_APPLICABLE = "na", _("N/A")
+        UNKNOWN = "unk", _("Unknown")
+
+    class SourceType(models.TextChoices):
+        """The category of a given source. Use `FOIA Officer` when applicable; otherwise,
+        use whichever category fits best.
+        """
+
+        DATA_ADMIN = "db", _("Database administrator")
+        REAL_PERSON = "rp", _("Person affected (anecdotal source)")
+        EXPERT = "e", _("Expert")
+        PR = "pr", _("Spokesperson, PR-Rep")
+        FOIA = "f", _("Public Records Officer")
+        OFFICIAL = "o", _("Public/Company Official")
+        INSIDER = "i", _("Company or business employee (current or former)")
+        MASS_NUMBER = "mn", _("General Inbox (e.g. Media Relations number)")
+
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
+    title = models.CharField(max_length=200, blank=True)
+    entity = models.ForeignKey(Entity, on_delete=models.CASCADE, null=True, blank=True)
+    work_number = PhoneNumberField(blank=True, null=True)
+    home_number = PhoneNumberField(blank=True, null=True)
+    cell_number = PhoneNumberField(blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    address = models.CharField(max_length=400, blank=True)
+    twitter = models.CharField(
+        max_length=16, blank=True, validators=[utils.validators.TwitterHandleValidator]
+    )
+    gender = models.CharField(max_length=1, choices=Gender.choices)
+    race = models.CharField(max_length=3, choices=Race.choices)
+    source_type = models.CharField(max_length=2, choices=SourceType.choices)
+    notes = models.TextField(help_text="Random notes about this person.", blank=True)
+    time_added = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+
+    @property
+    def entity_name(self):
+        if self.entity:
+            return str(self.entity)
+        return "-"
+
+    @property
+    def full_name(self):
+        """Returns the source's full name."""
+        # return the name of the department/number if this isn't a person
+        if self.source_type == Source.SourceType.MASS_NUMBER:
+            return f"{self.title} ({self.entity})"
+        if not (self.first_name or self.last_name):
+            return None
+        return f"{self.first_name} {self.last_name}"
+
+    def __str__(self):
+        if self.full_name is None:
+            return "Unknown"
+        return self.full_name
+
+    class Meta:
+        ordering = ["last_name", "first_name"]
+
 
 class FoiaContent(models.Model):
     """An abstract base class representing the core content of a FOIA Request.
@@ -163,7 +236,14 @@ class FoiaRequestBase(FoiaContent):
 class ScheduledFoiaAgency(models.Model):
     request_content = models.ForeignKey(ScheduledFoiaContent, on_delete=models.CASCADE)
     agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
-    recipient_name = models.CharField("name of public records officer", max_length=150)
+    recipient = models.ForeignKey(
+        "Source",
+        on_delete=models.SET_NULL,
+        limit_choices_to={"source_type":Source.SourceType.FOIA},
+        null=True,
+        blank=True
+    )
+    # recipient_name = models.CharField("name of public records officer", max_length=150)
 
 
 @reversion.register(
@@ -176,11 +256,18 @@ class FoiaRequestItem(models.Model):
         FoiaRequestBase, on_delete=models.CASCADE, related_name="foia_requests"
     )
     agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
-    # this doesn't link to a source because in a lot of cases, we won't know the officer's name
-    # and we can link our actual contacts to a FOIA request.
-    recipient_name = models.CharField(
-        "name of public records officer", max_length=150, blank=True
+    recipient = models.ForeignKey(
+        Source, 
+        on_delete=models.SET_NULL,
+        limit_choices_to={"source_type": Source.SourceType.FOIA },
+        null=True,
+        blank=True
     )
+    # # this doesn't link to a source because in a lot of cases, we won't know the officer's name
+    # # and we can link our actual contacts to a FOIA request.
+    # recipient_name = models.CharField(
+    #     "name of public records officer", max_length=150, blank=True
+    # )
     status = models.CharField(
         max_length=2, choices=FoiaStatus.choices, default=FoiaStatus.NO_RESPONSE
     )
@@ -212,76 +299,6 @@ class FoiaRequestItem(models.Model):
 
     class Meta:
         verbose_name = "FOIA Request"
-
-
-@reversion.register
-class Source(models.Model):
-    class Gender(models.TextChoices):
-        MAN = "m", _("Man")
-        WOMAN = "w", _("Woman")
-        NONCONFORMING = "n", _("Nonconforming")
-        INAPPLICABLE = "i", _("Inapplicable")
-        UNKNOWN = "u", _("Unknown")
-
-    class Race(models.TextChoices):
-        POC = "poc", _("Person of color")
-        WHITE = "w", _("White")
-        UNKNOWN = "unk", _("Unknown")
-
-    class SourceType(models.TextChoices):
-        """The category of a given source. Use `FOIA Officer` when applicable; otherwise,
-        use whichever category fits best.
-        """
-
-        DATA_ADMIN = "db", _("Database administrator")
-        REAL_PERSON = "rp", _("Person affected (anecdotal source)")
-        EXPERT = "e", _("Expert")
-        PR = "pr", _("Spokesperson, PR-Rep")
-        FOIA = "f", _("Public Records Officer")
-        OFFICIAL = "o", _("Public/Company Official")
-        INSIDER = "i", _("Company or business employee (current or former)")
-
-    first_name = models.CharField(max_length=100, blank=True)
-    last_name = models.CharField(max_length=100, blank=True)
-    title = models.CharField(max_length=200, blank=True)
-    entity = models.ForeignKey(Entity, on_delete=models.CASCADE, null=True, blank=True)
-    work_number = PhoneNumberField(blank=True, null=True)
-    home_number = PhoneNumberField(blank=True, null=True)
-    cell_number = PhoneNumberField(blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
-    address = models.CharField(max_length=400, blank=True)
-    twitter = models.CharField(
-        max_length=16, blank=True, validators=[utils.validators.TwitterHandleValidator]
-    )
-    gender = models.CharField(max_length=1, choices=Gender.choices)
-    race = models.CharField(max_length=3, choices=Race.choices)
-    source_type = models.CharField(max_length=2, choices=SourceType.choices)
-    notes = models.TextField(help_text="Random notes about this person.", blank=True)
-    time_added = models.DateTimeField(auto_now_add=True)
-    last_modified = models.DateTimeField(auto_now=True)
-
-    @property
-    def entity_name(self):
-        if self.entity:
-            return str(self.entity)
-        return "-"
-
-    @property
-    def full_name(self):
-        """Returns the source's full name."""
-        if not (self.first_name or self.last_name):
-            return None
-        return f"{self.first_name} {self.last_name}"
-
-    def __str__(self):
-        if self.full_name is None:
-            if self.entity is None:
-                return ""
-            return f"Unknown ({self.entity.name})"
-        return self.full_name
-
-    class Meta:
-        ordering = ["last_name", "first_name"]
 
 
 @reversion.register(fields=["answered", "ground_rules"])

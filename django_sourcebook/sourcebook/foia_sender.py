@@ -47,15 +47,14 @@ class FoiaHandler(abc.Mapping):
         self.template_path = self._get_template_path(recipient_agency)
         public_records_act = self._get_pra_name(recipient_agency)
         max_response_time = self._get_max_response_time(recipient_agency)
+        recipient_name = self._get_recipient_name(recipient_info)
         self.request_information = {
             "subject_line": request_body.short_description,
             "requested_records": request_body.requested_records,
             "expedited_processing": request_body.expedited_processing,
             "fee_waiver": request_body.fee_waiver,
             "foia_email": recipient_agency.foia_email,
-            "recipient_name": recipient_info.recipient_name
-            if recipient_info.recipient_name != ""
-            else "Public Records Officer",
+            "recipient_name": recipient_name,
             "public_records_act": public_records_act,
             "max_response_time": max_response_time,
             "agency_name": recipient_agency.name,
@@ -64,7 +63,7 @@ class FoiaHandler(abc.Mapping):
             "state": str(recipient_agency.state),
             "zip_code": recipient_agency.zip_code,
         }
-
+        
     def __getitem__(self, item):
         return self.request_information[item]
 
@@ -73,6 +72,11 @@ class FoiaHandler(abc.Mapping):
 
     def __len__(self):
         return len(self.request_information)
+
+    def _get_recipient_name(self, recipient_info):
+        if recipient_info.recipient is None:
+            return "Public Records Officer"
+        return recipient_info.recipient.full_name.strip()
 
     def _get_max_response_time(self, agency):
         max_resp_time = agency.state.maximum_response_time

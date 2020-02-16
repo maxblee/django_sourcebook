@@ -6,6 +6,7 @@ from sourcebook.models import (
     Entity,
     FoiaRequestBase,
     FoiaRequestItem,
+    Source
 )
 
 class MultiEmailField(forms.CharField):
@@ -39,7 +40,7 @@ class FoiaRequestBaseForm(forms.ModelForm):
 
 
 FoiaRequestFormSet = forms.modelformset_factory(
-    FoiaRequestItem, fields=("agency", "recipient_name",), extra=1,
+    FoiaRequestItem, fields=("agency", "recipient",), extra=1,
 )
 # only show agencies that
 FoiaRequestFormSet.form.base_fields["agency"].queryset = Entity.objects.filter(
