@@ -9,6 +9,7 @@ This is still a work in progress, but right now it's capable of allowing you to 
 - [FOIA](#foia)
     - [Templates](#templates)
 - [Future Roadmap](#future-roadmap)
+- [Credits](#credits)
 
 ## Setup and Installation
 
