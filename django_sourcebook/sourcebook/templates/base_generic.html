@@ -31,6 +31,13 @@
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
     }
+    .pagination {
+        display: inline-block;
+    }
+    .pagination a {
+        text-decoration: underline;
+        font-size: 18px;
+    }
     </style>
     {% block static_content %}{% endblock %}
 </head>
@@ -58,11 +65,40 @@
         <main id="main" class="cell auto">
             {% block pagination %}
             {% if is_paginated %}
-            <div class="pagination-container text-right">
-                Page {{page_obj.number}} of {{page_obj.paginator.num_pages}}
+            <div class="pagination-container">
                 <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                        <li>
+                            {% if query %}
+                            <a href="?q={{query}}&page=1">&laquo; 1</a></li>
+                            {% else %}
+                            <a href="?page=1">&laquo; 1</a>
+                            {% endif %}
+                    {% endif %}
+                    {% if page_obj.number > 6 %}
+                        <li>&hellip;</li>
+                    {% endif %}
                     {% for page in page_obj.paginator.page_range %}
+                        {% if page == page_obj.number %}
+                            <li class="current">{{page}}</li>
+                        {% elif page != 1 and page != page_obj.paginator.num_pages and page > page_obj.number|add:"-5" and page < page_obj.number|add:"5"%}
+                            {% if query %}
+                            <li><a href="?q={{query}}&page={{page}}">{{page}}</a></li>
+                            {% else %}
+                            <li><a href="?page={{page}}">{{page}}</a></li>
+                            {% endif %}
+                        {% endif %}
                     {% endfor %}
+                    {% if page_obj.paginator.num_pages > page_obj.number|add:"5" %}
+                        <li>&hellip;</li>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        {% if query %}
+                        <li><a href="?q={{query}}&page={{page_obj.paginator.num_pages}}">{{page_obj.paginator.num_pages}} &raquo;</a></li>
+                        {% else %}
+                        <li><a href="?page={{page_obj.paginator.num_pages}}">{{page_obj.paginator.num_pages}} &raquo;</a></li>                        
+                        {% endif %}
+                    {% endif %}
                 </ul>
             </div>
             {% endif %}

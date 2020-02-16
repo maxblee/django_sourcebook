@@ -158,8 +158,8 @@ def index(request):
         "total_sources": total_sources,
         "pct_men_overall": f"{pct_men_overall * 100:0.0f}" if pct_men_overall is not None else "",
         "pct_white_overall": f"{pct_white_overall * 100:0.0f}" if pct_white_overall is not None else "",
-        "pct_men_story": f"{pct_men_story * 100:0.0f}" if pct_men_story is not None else "",
-        "pct_white_story": f"{pct_white_story * 100:0.0f}" if pct_white_story is not None else "",
+        "pct_men_story": f"{pct_men_story * 100:0.0f}" if pct_men_story is not None else None,
+        "pct_white_story": f"{pct_white_story * 100:0.0f}" if pct_white_story is not None else None,
     }
     return render(request, "sourcebook/index.html", context)
 

@@ -1,6 +1,7 @@
 from django.core import validators
 from django.core.validators import EmailValidator
 from django import forms
+from django import urls
 from django.db.models import Q
 from sourcebook.models import (
     Entity,
@@ -8,6 +9,8 @@ from sourcebook.models import (
     FoiaRequestItem,
     Source
 )
+
+
 
 class MultiEmailField(forms.CharField):
     def clean(self, value):
@@ -46,3 +49,5 @@ FoiaRequestFormSet = forms.modelformset_factory(
 FoiaRequestFormSet.form.base_fields["agency"].queryset = Entity.objects.filter(
     Q(foia_email__isnull=False)
 )
+
+FoiaRequestFormSet.form.base_fields["recipient"].queryset = Source.objects.none()

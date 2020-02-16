@@ -23,6 +23,7 @@ urlpatterns = [
     path("sourcebook/", include("sourcebook.urls.sourcebook")),
     path("foia/", include("sourcebook.urls.foia")),
     path("projects/", include("sourcebook.urls.projects")),
+    path("autocomplete/", include("sourcebook.urls.autocomplete")),
 ]
 
 # debug toolbar settings

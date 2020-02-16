@@ -1,5 +1,6 @@
 from django.views.generic import ListView
-from django.contrib.postgres.search import SearchVector, SearchRank
+from django.contrib.postgres.search import SearchVector, SearchRank, SearchQuery
+from django.db.models import Q, F
 from sourcebook.models import Source
 
 SOURCE_TYPES = dict(Source.SourceType.choices)
@@ -14,27 +15,26 @@ class SourcesListView(ListView):
         "title",
         "entity",
     )
-    paginate_by = 15
+    paginate_by = 10
 
     def get_queryset(self):
         query = self.request.GET.get("q")
-        if query is None:
+        if query is None or query == "":
             return Source.objects.all()
-        search_vector = (
-            SearchVector("email", weight="A")
-            + SearchVector("last_name", "first_name", weight="A")
-            + SearchVector("work_number", weight="A")
-            + SearchVector("home_number", weight="A")
-            + SearchVector("cell_number", weight="A")
-            + SearchVector("entity", weight="B")
-            + SearchVector("title", weight="B")
-        )
+        search_query = SearchQuery(query)
+        # combining searches from http://rubyjacket.com/build/django-psql-fts.html
         return (
-            Source.objects.annotate(rank=SearchRank(search_vector, query))
-            .filter(rank__gte=0.3)
-            .order_by("rank")
+            Source.objects.filter(
+                Q(search_vector=search_query) | Q(entity__search_vector=search_query)
+            ).annotate(
+                source_rank=SearchRank(F("search_vector"), search_query)
+            ).annotate(
+                entity_rank=SearchRank(F("entity__search_vector"), search_query)
+            ).annotate(
+                rank=F("source_rank") + F("entity_rank")
+            ).order_by("-rank", "last_name", "first_name")
         )
-
+    
     def get_context_data(self, **kwargs):
         context = super(SourcesListView, self).get_context_data(**kwargs)
         context["fields"] = [

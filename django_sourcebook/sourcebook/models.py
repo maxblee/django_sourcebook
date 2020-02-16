@@ -103,6 +103,8 @@ class Entity(models.Model):
     is_federal = models.BooleanField("Federal Agency?", default=False)
     is_public_body = models.BooleanField("Public Body?", default=False)
 
+    search_vector = SearchVectorField(null=True)
+
     def __str__(self):
         return self.name
 
@@ -157,6 +159,8 @@ class Source(models.Model):
     time_added = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
 
+    search_vector = SearchVectorField(null=True)
+
     @property
     def entity_name(self):
         if self.entity:
@@ -180,6 +184,9 @@ class Source(models.Model):
 
     class Meta:
         ordering = ["last_name", "first_name"]
+        indexes = [
+            GinIndex(fields=["search_vector"])
+        ]
 
 
 class FoiaContent(models.Model):

@@ -20,7 +20,6 @@ pytest-django = "*"
 pytest-cov = "*"
 
 [packages]
-django = "*"
 django-autocomplete-light = "*"
 django-taggit = "*"
 psycopg2 = "*"

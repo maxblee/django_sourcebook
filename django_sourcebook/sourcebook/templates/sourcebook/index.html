@@ -15,8 +15,12 @@
     {% include "_stat_item.html" with stat=new_sources stat_description="sources added in the past week" %}
     {% include "_stat_item.html" with stat=pct_men_overall stat_description="percent of sources are men" %}
     {% include "_stat_item.html" with stat=pct_white_overall stat_description="percent of sources are white" %}
-    {% include "_stat_item.html" with stat=pct_men_story stat_description="percent of the sources in your stories are men" %}
-    {% include "_stat_item.html" with stat=pct_white_story stat_description="percent of the sources in your stories are white" %}
+    {% if pct_men_story %}
+        {% include "_stat_item.html" with stat=pct_men_story stat_description="percent of the sources in your stories are men" %}
+    {% endif %}
+    {% if pct_white_story %}
+        {% include "_stat_item.html" with stat=pct_white_story stat_description="percent of the sources in your stories are white" %}
+    {% endif %}
 </ul>
 <p>Note: all race and gender statistics exclude people whose race or gender you do not know.</p>
 {% endif %}

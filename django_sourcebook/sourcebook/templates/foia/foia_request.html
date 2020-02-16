@@ -1,4 +1,5 @@
 {% extends "base_generic.html" %}
+{% load static %}
 {% block page_title %}File FOIA Requests{% endblock %}
 
 {% block sidenav %}
@@ -55,6 +56,44 @@
             // have the File Request text turn to File Requests when you add an agency to the request
             $("#submit-button").text((_, current_text) => form_num == 1 ? current_text + "s" : current_text);
          });
+
+         var selectOpts = "select:not(:hidden)[id^='id_form-'][id$='-agency']";
+         $(selectOpts).each(setSources);
+         $(selectOpts).change(setSources);
+
+         function setSources() {
+            var elemId = $(this).attr("id");
+            var idRegex = /id_form\-([0-9]+)\-agency/;
+            var formNum = idRegex.exec(elemId)[1];
+            clearSources(formNum);
+            getSources(formNum);
+         }
+
        });
+
+    function getSources(formNum) {
+        var entityId = $("#id_form-" + formNum + "-agency").val();
+        $.ajax({
+            url: "{% url 'source-match-entity' %}",
+            type: "GET",
+            data: {"q": entityId},
+            dataType: "json",
+            success: function(data) {
+                for (var source in data.results) {
+                    var sourceContents = data.results[source];
+                    var optionHtml = '<option value="' + sourceContents.id + '">' + sourceContents.text + '</option>';
+                    $("#id_form-" + formNum + "-recipient").append(optionHtml);
+                }
+            }
+        });
+    }
+
+    function clearSources(formNum) {
+        $("#id_form-" + formNum + "-recipient").find("option").each(function() {
+            // only remove options if they aren't ------
+            if ( $.isNumeric( $( this).val() ) ) $(this).remove();
+        })
+    }
+
   </script>
 {% endblock %}
