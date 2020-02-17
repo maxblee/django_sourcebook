@@ -10,6 +10,9 @@ from sourcebook.models import (
     Source
 )
 
+class DataListWidget(forms.Select):
+    template_name = "_widgets/datalist.html"
+    option_template_name = "_widgets/datalist_option.html"
 
 
 class MultiEmailField(forms.CharField):
@@ -44,6 +47,7 @@ class FoiaRequestBaseForm(forms.ModelForm):
 
 FoiaRequestFormSet = forms.modelformset_factory(
     FoiaRequestItem, fields=("agency", "recipient",), extra=1,
+    widgets= {"agency": DataListWidget() }
 )
 # only show agencies that
 FoiaRequestFormSet.form.base_fields["agency"].queryset = Entity.objects.filter(

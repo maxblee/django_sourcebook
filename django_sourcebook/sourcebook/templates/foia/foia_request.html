@@ -45,6 +45,8 @@
 <script>
     // from https://stackoverflow.com/questions/39095941/shall-i-use-django-dynamic-formset-or-there-is-a-bettor-solution
     var form_num = 0;
+    var idPrefix = "#id_opts-form-";
+
     $(document).ready(function() {
           $("#additemsbutton").on('click',function(event)
           {
@@ -57,11 +59,13 @@
             $("#submit-button").text((_, current_text) => form_num == 1 ? current_text + "s" : current_text);
          });
 
-         var selectOpts = "select:not(:hidden)[id^='id_form-'][id$='-agency']";
+         var selectOpts = "input:not(:hidden)[id^='id_form-'][id$='-agency']";
          $(selectOpts).each(setSources);
-         $(selectOpts).change(setSources);
+         // Praise be: https://stackoverflow.com/questions/14346954/jquery-on-change-not-firing-for-dynamic-content
+         $("#formset-container").on("change", selectOpts, setSources);
 
          function setSources() {
+             console.log("hello");
             var elemId = $(this).attr("id");
             var idRegex = /id_form\-([0-9]+)\-agency/;
             var formNum = idRegex.exec(elemId)[1];
@@ -72,7 +76,9 @@
        });
 
     function getSources(formNum) {
-        var entityId = $("#id_form-" + formNum + "-agency").val();
+        var datalistId = $("#id_form-" + formNum + "-agency").attr("list");
+        var inputValue = $("#id_form-" + formNum + "-agency").val();
+        var entityId = $("#" + datalistId + " option[value='" + inputValue + "']").attr("data-id-value");
         $.ajax({
             url: "{% url 'source-match-entity' %}",
             type: "GET",

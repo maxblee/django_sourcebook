@@ -1,0 +1,8 @@
+<!-- Adapted from https://github.com/django/django/blob/master/django/forms/templates/django/forms/widgets/select.html -->
+<!-- only modifying the select into a datalist -->
+<input list="id_opts-{{widget.name}}"  type="text" id="id_{{widget.name}}" name="{{ widget.name }}"/>
+<datalist id="id_opts-{{widget.name}}">{% for group_name, group_choices, group_index in widget.optgroups %}{% if group_name %}
+    <optgroup label="{{ group_name }}">{% endif %}{% for option in group_choices %}
+    {% include option.template_name with widget=option %}{% endfor %}{% if group_name %}
+    </optgroup>{% endif %}{% endfor %}
+</datalist>
