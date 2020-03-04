@@ -38,7 +38,7 @@ def validate_template_extension(foia_template):
     limit = 2 * 1024 * 1024
     if foia_template.size > limit:
         raise ValidationError("File too large. Size should not exceed 2 MiB.")
-    record_regex = re.compile(r"{{\s*requested_records\s*}}")
+    record_regex = re.compile(r"{{\s*requested_records(?:\s*\|\s*\w+)\s*}}")
     document_text = mammoth.extract_raw_text(foia_template).value
     if not record_regex.search(document_text):
         raise ValidationError(

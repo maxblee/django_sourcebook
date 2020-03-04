@@ -1,14 +1,26 @@
 import datetime
-from django.contrib import messages 
+from django import forms
+from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q, F, ExpressionWrapper, fields, Avg, Min, Max, Count, Sum, Value
+from django.db.models import (
+    Q,
+    F,
+    ExpressionWrapper,
+    fields,
+    Avg,
+    Min,
+    Max,
+    Count,
+    Sum,
+    Value,
+)
 from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 from sourcebook.models import FoiaStatus, FoiaRequestItem, Source, Story
-from sourcebook.forms import FoiaRequestBaseForm, FoiaRequestFormSet
+from sourcebook.forms import FoiaRequestBaseForm, FoiaRequestFormSet, BrowseRequestForm
 from sourcebook import foia_sender
 
 # Create your views here.
@@ -57,22 +69,29 @@ def foia_index(request):
     resp_time_data = (
         FoiaRequestItem.objects.exclude(time_completed=None)
         .annotate(duration=duration)
-        .aggregate(Avg("duration"), Max("duration"), Min("duration"))
+        .aggregate(Avg("duration"), Max("duration"), Count("id"))
     )
     context = {
         "num_requests": num_foia_requests,
         "num_cur_yr": num_cur_yr,
-        "avg_resp_time": resp_time_data["duration__avg"].days if resp_time_data["duration__avg"] is not None else None,
-        "max_resp_time": resp_time_data["duration__max"].days if resp_time_data["duration__max"] is not None else None,
-        "min_resp_time": resp_time_data["duration__min"].days if resp_time_data["duration__min"] is not None else None,
+        "completed_requests": resp_time_data["id__count"],
+        "avg_resp_time": resp_time_data["duration__avg"].days
+        if resp_time_data["duration__avg"] is not None
+        else None,
+        "max_resp_time": resp_time_data["duration__max"].days
+        if resp_time_data["duration__max"] is not None
+        else None,
+        "foia_form": BrowseRequestForm(),
     }
     return render(request, "foia/index.html", context)
+
 
 def _safe_division(numerator, denominator):
     """Returns none if you'd get a ZeroDivisionError else divides"""
     if denominator == 0:
         return None
     return numerator / denominator
+
 
 def index(request):
     """The home page of our lovely source book!"""
@@ -118,7 +137,7 @@ def index(request):
         get_object_or_default(overall_race, default={"count": 0}, race="poc")["count"],
         get_object_or_default(overall_race, default={"count": 0}, race="w")["count"],
     )
-    pct_white_overall = _safe_division(num_white, num_poc + num_white) 
+    pct_white_overall = _safe_division(num_white, num_poc + num_white)
     story_gender = (
         Story.objects.values("sources__gender")
         .annotate(
@@ -128,13 +147,15 @@ def index(request):
         )
         .aggregate(
             total_women=Coalesce(Sum("num_women"), Value(0)),
-            total_men= Coalesce(Sum("num_men"), Value(0)),
-            total_nonbin= Coalesce(Sum("num_nonbin"), Value(0))
+            total_men=Coalesce(Sum("num_men"), Value(0)),
+            total_nonbin=Coalesce(Sum("num_nonbin"), Value(0)),
         )
     )
     pct_men_story = _safe_division(
         story_gender["total_men"],
-        story_gender["total_women"] + story_gender["total_nonbin"] + story_gender["total_men"]
+        story_gender["total_women"]
+        + story_gender["total_nonbin"]
+        + story_gender["total_men"],
     )
 
     story_race = (
@@ -144,22 +165,29 @@ def index(request):
             num_poc=Count("id", filter=Q(sources__race="poc")),
         )
         .aggregate(
-            total_white= Coalesce(Sum("num_white"), Value(0)), 
-            total_poc= Coalesce(Sum("num_poc"), Value(0))
-            )
+            total_white=Coalesce(Sum("num_white"), Value(0)),
+            total_poc=Coalesce(Sum("num_poc"), Value(0)),
+        )
     )
     pct_white_story = _safe_division(
-        story_race["total_white"], 
-        story_race["total_white"] + story_race["total_poc"]
+        story_race["total_white"], story_race["total_white"] + story_race["total_poc"]
     )
 
     context = {
         "new_sources": new_sources,
         "total_sources": total_sources,
-        "pct_men_overall": f"{pct_men_overall * 100:0.0f}" if pct_men_overall is not None else "",
-        "pct_white_overall": f"{pct_white_overall * 100:0.0f}" if pct_white_overall is not None else "",
-        "pct_men_story": f"{pct_men_story * 100:0.0f}" if pct_men_story is not None else None,
-        "pct_white_story": f"{pct_white_story * 100:0.0f}" if pct_white_story is not None else None,
+        "pct_men_overall": f"{pct_men_overall * 100:0.0f}"
+        if pct_men_overall is not None
+        else "",
+        "pct_white_overall": f"{pct_white_overall * 100:0.0f}"
+        if pct_white_overall is not None
+        else "",
+        "pct_men_story": f"{pct_men_story * 100:0.0f}"
+        if pct_men_story is not None
+        else None,
+        "pct_white_story": f"{pct_white_story * 100:0.0f}"
+        if pct_white_story is not None
+        else None,
     }
     return render(request, "sourcebook/index.html", context)
 
@@ -184,10 +212,14 @@ def create_foia_request(request):
                 current_foia.expedited_processing_granted = False
                 current_foia.save()
                 try:
-                    foia_email = foia_sender.FoiaHandler(foia_request, current_foia, **params)
+                    foia_email = foia_sender.FoiaHandler(
+                        foia_request, current_foia, **params
+                    )
                     foia_email.file_request()
                 except foia_sender.FoiaTemplateError:
-                    messages.error(request, "You must add a valid template for this entity")
+                    messages.error(
+                        request, "You must add a valid template for this entity"
+                    )
                     return HttpResponseRedirect(reverse("create_foia_request"))
             return HttpResponseRedirect(reverse("foia_index"))
     else:

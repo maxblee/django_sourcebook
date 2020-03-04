@@ -1,0 +1,41 @@
+{% extends "base_generic.html" %}
+{% block page_title %}{{ object }}{% endblock %}
+{% block sidenav %}
+{% include "foia/_sidenav.html" %}
+{% endblock %}
+{% block container %}
+<h1>{{ object }}</h1>
+<h2>Request Details</h2>
+<p class="lead"><b>Date Filed:</b>{{object.request_content.date_filed}}</p>
+{% if object.time_completed is not None %}
+<p class="lead"><b>Time Completed:</b>{{object.time_completed}}</p>
+{% else %}
+<p class="lead"><b>Mandatory Response Date:</b>{{object.due_date}} {% if object.status == 'nr' %}(It is {% now "N j, Y" %}.){% endif %}</p>
+{% endif %}
+<p class="lead"><b>Current Status:</b>{{object.get_status_display}}</p>
+<p class="lead"><b>Fee:</b>{% if object.fee_assessed is not None %}{{object.fee_assessed}}{% else %}None{% endif %}</p>
+<p class="lead"><b>Modifications:</b>{% if object.modifications is None or object.modifications|length_is:"0" %}None{% endif %}</p>
+{% if object.modifications is not None %}
+<ul>
+    {% for modication in object.modifications %}
+    <li>{{modification}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+<p class="lead"><b>Records Sought:</b></p>
+<p class="lead">{{object.request_content.requested_records}}</p>
+<h2>Agency Details</h2>
+<p class="lead"><b>Agency Name:</b>{{object.agency.name}}</p>
+{% if object.agency.state is not None %}
+<p class="lead"><b>State:</b>{{object.agency.state}}</p>
+<p class="lead"><a href="{{object.agency.state.foia_guide}}">Read the {{object.agency.state.public_records_act_name}} Records Guide</a></p>
+{% else %}
+<p class="lead">Federal Agency</p>
+{% endif %}
+{% if object.recipient is not None %}
+<p class="lead"><b>Public Records Officer:</b>{{object.recipient}}</p>
+{% endif %}
+<p class="lead"><b>Public Records E-mail:</b><a href="mailto:{{object.agency.foia_email}}">{{object.agency.foia_email}}</a></p>
+<h2>Responsive Records</h2>
+<p>TODO</p>
+{% endblock %}

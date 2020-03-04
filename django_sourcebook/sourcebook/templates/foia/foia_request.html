@@ -6,13 +6,6 @@
 {% include "foia/_sidenav.html" %}
 {% endblock %}
 
-{% block static_content %}
-<script
-			  src="https://code.jquery.com/jquery-3.4.1.min.js"
-			  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
-              crossorigin="anonymous"></script>
-{% endblock %}
-
 {% block container %}
 <h1>Batch File Public Records Request(s)</h1>
 <form method="POST" action="">
@@ -59,13 +52,13 @@
             $("#submit-button").text((_, current_text) => form_num == 1 ? current_text + "s" : current_text);
          });
 
-         var selectOpts = "input:not(:hidden)[id^='id_form-'][id$='-agency']";
+        //  var selectOpts = "input:not(:hidden)[id^='id_form-'][id$='-agency']";
+        var selectOpts = "select:not(:hidden)[id^='id_form-'][id$='-agency']";
          $(selectOpts).each(setSources);
          // Praise be: https://stackoverflow.com/questions/14346954/jquery-on-change-not-firing-for-dynamic-content
          $("#formset-container").on("change", selectOpts, setSources);
 
          function setSources() {
-             console.log("hello");
             var elemId = $(this).attr("id");
             var idRegex = /id_form\-([0-9]+)\-agency/;
             var formNum = idRegex.exec(elemId)[1];
@@ -76,9 +69,10 @@
        });
 
     function getSources(formNum) {
-        var datalistId = $("#id_form-" + formNum + "-agency").attr("list");
-        var inputValue = $("#id_form-" + formNum + "-agency").val();
-        var entityId = $("#" + datalistId + " option[value='" + inputValue + "']").attr("data-id-value");
+        // var datalistId = $("#id_form-" + formNum + "-agency").attr("list");
+        // var inputValue = $("#id_form-" + formNum + "-agency").val();
+        // var entityId = $("#" + datalistId + " option[value='" + inputValue + "']").attr("data-id-value");
+        var entityId = $("#id_form-" + formNum + "-agency").val();
         $.ajax({
             url: "{% url 'source-match-entity' %}",
             type: "GET",

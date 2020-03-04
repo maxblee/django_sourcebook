@@ -26,15 +26,13 @@ class SourcesListView(ListView):
         return (
             Source.objects.filter(
                 Q(search_vector=search_query) | Q(entity__search_vector=search_query)
-            ).annotate(
-                source_rank=SearchRank(F("search_vector"), search_query)
-            ).annotate(
-                entity_rank=SearchRank(F("entity__search_vector"), search_query)
-            ).annotate(
-                rank=F("source_rank") + F("entity_rank")
-            ).order_by("-rank", "last_name", "first_name")
+            )
+            .annotate(source_rank=SearchRank(F("search_vector"), search_query))
+            .annotate(entity_rank=SearchRank(F("entity__search_vector"), search_query))
+            .annotate(rank=F("source_rank") + F("entity_rank"))
+            .order_by("-rank", "last_name", "first_name")
         )
-    
+
     def get_context_data(self, **kwargs):
         context = super(SourcesListView, self).get_context_data(**kwargs)
         context["fields"] = [

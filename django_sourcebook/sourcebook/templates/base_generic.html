@@ -6,6 +6,10 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>{% block page_title %}{% endblock %} | Sourcebook</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/foundation-sites@6.6.1/dist/css/foundation.min.css" integrity="sha256-Q2fXBbKhtsyhYrSLa7hXCNV+FdhbQhyrjks8Kic0u/U=" crossorigin="anonymous">
+    <script
+			  src="https://code.jquery.com/jquery-3.4.1.min.js"
+			  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+              crossorigin="anonymous"></script>
     <style>
     * {
         margin: 0.3rem;
@@ -38,6 +42,13 @@
         text-decoration: underline;
         font-size: 18px;
     }
+    [data-href] {
+        cursor: pointer;
+    }
+    [data-href]:hover {
+        text-decoration: underline;
+        background-color:aquamarine;
+    }
     </style>
     {% block static_content %}{% endblock %}
 </head>
@@ -68,12 +79,7 @@
             <div class="pagination-container">
                 <ul class="pagination">
                     {% if page_obj.has_previous %}
-                        <li>
-                            {% if query %}
-                            <a href="?q={{query}}&page=1">&laquo; 1</a></li>
-                            {% else %}
-                            <a href="?page=1">&laquo; 1</a>
-                            {% endif %}
+                    <li><a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo; 1</a></li>
                     {% endif %}
                     {% if page_obj.number > 6 %}
                         <li>&hellip;</li>
@@ -82,22 +88,19 @@
                         {% if page == page_obj.number %}
                             <li class="current">{{page}}</li>
                         {% elif page != 1 and page != page_obj.paginator.num_pages and page > page_obj.number|add:"-5" and page < page_obj.number|add:"5"%}
-                            {% if query %}
+                            <li><a href="?page={{ page }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{page}}</a></li>
+                            <!-- {% if query %}
                             <li><a href="?q={{query}}&page={{page}}">{{page}}</a></li>
                             {% else %}
                             <li><a href="?page={{page}}">{{page}}</a></li>
-                            {% endif %}
+                            {% endif %} -->
                         {% endif %}
                     {% endfor %}
                     {% if page_obj.paginator.num_pages > page_obj.number|add:"5" %}
                         <li>&hellip;</li>
                     {% endif %}
                     {% if page_obj.has_next %}
-                        {% if query %}
-                        <li><a href="?q={{query}}&page={{page_obj.paginator.num_pages}}">{{page_obj.paginator.num_pages}} &raquo;</a></li>
-                        {% else %}
-                        <li><a href="?page={{page_obj.paginator.num_pages}}">{{page_obj.paginator.num_pages}} &raquo;</a></li>                        
-                        {% endif %}
+                    <li><a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{page_obj.paginator.num_pages}} &raquo;</a></li>
                     {% endif %}
                 </ul>
             </div>
@@ -110,6 +113,14 @@
     <footer>
 
     </footer>
+<script>
+    // https://stackoverflow.com/questions/17147821/how-to-make-a-whole-row-in-a-table-clickable-as-a-link
+    $(document).ready(function() {
+        $("*[data-href]").on("click", function() {
+            window.open($(this).data("href"), "_blank");
+        });
+    });
+</script>
 {% block script_on_ready %}{% endblock %}
 </body>
 </html>

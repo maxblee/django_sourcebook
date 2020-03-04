@@ -7,17 +7,25 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sourcebook', '0027_create_trigger'),
+        ("sourcebook", "0027_create_trigger"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='foiarequestbase',
-            options={'ordering': ('-date_filed',), 'verbose_name': 'FOIA Request Body', 'verbose_name_plural': 'FOIA Request Bodies'},
+            name="foiarequestbase",
+            options={
+                "ordering": ("-date_filed",),
+                "verbose_name": "FOIA Request Body",
+                "verbose_name_plural": "FOIA Request Bodies",
+            },
         ),
         migrations.AlterField(
-            model_name='foiarequestitem',
-            name='request_content',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='foia_requests', to='sourcebook.FoiaRequestBase'),
+            model_name="foiarequestitem",
+            name="request_content",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="foia_requests",
+                to="sourcebook.FoiaRequestBase",
+            ),
         ),
     ]

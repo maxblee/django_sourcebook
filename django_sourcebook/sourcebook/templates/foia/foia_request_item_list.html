@@ -1,0 +1,35 @@
+{% extends "base_generic.html" %}
+{% block page_title %}Records Responses{% endblock %}
+{% block sidenav %}
+{% include "foia/_sidenav.html" %}
+{% endblock %}
+{% block container %}
+<h1>Public Records Responses</h1>
+<div class="query-results text-center">Found {{count}} individual requests.</div>
+{% if count > 0 %}
+<table>
+    <thead>
+        <tr>
+            <th>Records Sought</th>
+            <th>Agency</th>
+            <th>Date Filed</th>
+            <th>Date Closed</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in object_list %}
+        <tr data-href="{% url 'foia_request_detail' pk=item.pk %}">
+            <td>{{item.request_content.short_description}}</td>
+            <td>{{item.agency.name}}</td>
+            <td>{{item.request_content.date_filed|date:"Y-d-m"}}</td>
+            <td>{% if item.time_completed is not None %}{{item.time_completed|date:"Y-d-m"}}{% else %}Not completed{% endif %}</td>
+            <td>{{item.get_status_display}}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="no-records">No records found.</div>
+{% endif %}
+{% endblock %}

@@ -6,11 +6,11 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sourcebook', '0031_auto_20200216_0220'),
+        ("sourcebook", "0031_auto_20200216_0220"),
     ]
 
     operations = [
-         migrations.RunSQL(
+        migrations.RunSQL(
             sql="""
             CREATE TRIGGER source_update_trigger
             BEFORE INSERT OR UPDATE OF first_name, last_name, title, home_number, cell_number, work_number, email, twitter, search_vector

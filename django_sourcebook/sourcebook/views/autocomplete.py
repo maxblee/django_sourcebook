@@ -1,6 +1,7 @@
 from dal import autocomplete
 from django.db.models import Q
-from sourcebook.models import Entity, Source
+from sourcebook.models import Entity, Source, FoiaRequestItem
+
 
 class SourceMatchesEntity(autocomplete.Select2QuerySetView):
     def get_queryset(self):
@@ -9,14 +10,18 @@ class SourceMatchesEntity(autocomplete.Select2QuerySetView):
             qs = Source.objects.filter(entity__id=self.q)
         return qs
 
+
 class EntityAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = Entity.objects.all()
         if self.q:
             qs = qs.filter(
-                Q(name__iregex=f"(^|\s){self.q}") | Q(municipality__istartswith=self.q) | Q(locality__istartswith=self.q)
+                Q(name__iregex=f"(^|\s){self.q}")
+                | Q(municipality__istartswith=self.q)
+                | Q(locality__istartswith=self.q)
             )
         return qs
+
 
 class SourceAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):

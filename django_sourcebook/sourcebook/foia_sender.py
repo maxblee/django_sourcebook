@@ -23,8 +23,10 @@ import mammoth
 GMAIL_SERVICE = auth.get_service()
 TEMPLATE_INFO = re.compile(r"{{\s*([a-zA-Z_]+)\s*}}")
 
+
 class FoiaTemplateError(Exception):
     pass
+
 
 class FoiaHandler(abc.Mapping):
     """A class designed to help file FOIA requests, given objects describing the content of the requests.
@@ -63,7 +65,7 @@ class FoiaHandler(abc.Mapping):
             "state": str(recipient_agency.state),
             "zip_code": recipient_agency.zip_code,
         }
-        
+
     def __getitem__(self, item):
         return self.request_information[item]
 
@@ -109,10 +111,14 @@ class FoiaHandler(abc.Mapping):
                 return fallback
             return expected_path
         elif agency.state is None:
-            raise FoiaTemplateError("The agency either must be a federal agency or correspond be part of a state (or D.C.)")
+            raise FoiaTemplateError(
+                "The agency either must be a federal agency or correspond be part of a state (or D.C.)"
+            )
         else:
-            expected_path = os.path.join(MEDIA_ROOT, str(agency.state.foia_template))
-            if expected_path != "":
+            str_state_template = str(agency.state.foia_template)
+            # expected_path = os.path.join(MEDIA_ROOT, str(agency.state.foia_template))
+            if str_state_template != "":
+                expected_path = os.path.join(MEDIA_ROOT, str_state_template)
                 if not os.path.exists(expected_path):
                     raise FoiaTemplateError(
                         "Could not find FOIA template at {}".format(str(expected_path))
@@ -135,6 +141,11 @@ class FoiaHandler(abc.Mapping):
         html_template = Template(mammoth.convert_to_html(self.template_path).value)
         context = Context(self.request_information)
         text_template = Template(mammoth.extract_raw_text(self.template_path).value)
+        unprocessed_text = text_template.render(context)
+        # in order to allow for line spacing, need br and p coming from Django context render
+        text_content = re.sub(
+            r"\<\/?p\>", "", re.sub(r"\<br\>", "\n", unprocessed_text)
+        )
         return html_template.render(context), text_template.render(context)
 
     def file_request(self):

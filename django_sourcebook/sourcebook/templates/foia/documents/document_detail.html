@@ -1,0 +1,25 @@
+{% extends "base_generic.html" %}
+{% block page_title %}{{document.name}} {% endblock %}
+{% block sidenav %}
+{% include "foia/_sidenav.html" %}
+{% endblock %}
+{% block container %}
+<h1>{{document.name}}</h1>
+<p class="lead">
+    <a href="{{ MEDIA_URL }}{{document.doc_file.url}}">Read Document</a>
+</p>
+<p class="h4">{{document.short_description}}</p>
+<p>{{document.addl_notes}}</p>
+{% if document.related_project is not None %}
+<h2>Related Project</h2>
+<h3>{{document.related_project.short_description}}</h3>
+<h3><b>Launched </b><span class="h4">{{document.related_project.launch_time|date:"F j, Y"}}</span></h3>
+{% endif %}
+{% if document.foia_request is not None %}
+<h2>Related Public Records Request</h2>
+<h3><b>Agency: </b>{{document.foia_request.agency.name}}</h3>
+<h3><b>Records Sought: </b>{{document.foia_request.request_content.short_description}}</h3>
+<h3><b>Request Send: </b>{{document.foia_request.request_content.date_filed|date:"F j, Y"}}</h3>
+<h3><b>Received: </b>{{document.foia_request.time_completed|date:"F j, Y"}}</h3>
+{% endif %}
+{% endblock %}

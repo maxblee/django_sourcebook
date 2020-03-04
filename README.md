@@ -2,7 +2,7 @@
 
 This is a tool I've started to create in order to organize my work as a journalist and in order to file public records requests.
 
-This is still a work in progress, but right now it's capable of allowing you to keep track of and search for sources and to file bulk public records requests. Because of the scope of the project, there's a lot that I hope to add, from more extensive search functionality to the ability to run scheduled requests (for instance, for salary data or FOIA logs). Those additional features are documented in the [future roadmap](#future-roadmap) section of this README.
+This is still very much a work in progress, and right now I'm making consistent minor patches and improvements to the tool as they're coming up in a couple of projects they're working on. But right now, most of it seems to be running at workable speeds for the 150 records requests I've entered and the 115 sources (mostly public records officers) I've entered.
 
 ## Table of Contents
 - [Setup and installation](#setup-and-installation)
@@ -13,7 +13,7 @@ This is still a work in progress, but right now it's capable of allowing you to 
 
 ## Setup and Installation
 
-This project requires PostgreSQL to run, primarily because it uses full-text search from PostgreSQL. In addition, you need Python version 3.6+, because this uses f-strings.
+This project requires PostgreSQL to run, primarily because it uses full-text search from PostgreSQL. In addition, it requires Python version 3.6+.
 
 In addition, you will need to set up a new database for the project and enter information about the database in your project
 `settings` folder. By default, this grabs the username and password for your database from environment settings and specifies
@@ -41,8 +41,7 @@ FROM_EMAIL = "givemerecords@gmail.com"
 ```
 
 After setting up your database, you should run a virtual environment, migrate your changes into your database, add
-your GMail credentials so you can file FOIA requests, and load initial data into your database (this is mostly default information about states and their public records laws). Assuming you have `pipenv` and `make` installed,
-this should be as easy as running:
+your GMail credentials so you can file FOIA requests, and load initial data into your database (this is mostly default information about states and their public records laws). Assuming you have `pipenv` and `make` installed, this *should* ideally be a simple as:
 
 ```bash
 $ make init
@@ -55,6 +54,15 @@ $ python manage.py runserver
 ```
 
 ## FOIA
+
+By running `make init`, you should already have information about the name of every single state's public records act and general information about the time period in which agencies are required to respond to you by. I manually compiled this information from [Muckrock](https://www.muckrock.com/), [The Reporter's Committee for Freedom of the Press](https://www.rcfp.org/), the [National Freedom of Information Coalition](https://www.nfoic.org/), and some Google searches. 
+
+This functionality allows you to keep track of agencies that are delinquent in their requests under the Browse Requests search form in the FOIA app on this site. 
+
+You should almost never have to change this information. If a state changes its law, however, let me know so I can update the database and push a commit to origin.
+
+The only thing you *should* have to change about individual state information are the state public records templates.
+
 ### Templates
 
 State-level public records laws are similar enough to one another that you can largely use the same template to file requests across state lines. However, because states have different public records provisions (for instance, some have fee waivers written into statute, while others don't; some have residency requirements, while others don't), it can be beneficial to have different templates for different states.
@@ -69,7 +77,9 @@ First of all, your federal FOIA template should go into the `FEDERAL_FOIA_TEMPLA
 
 You should upload state-specific requests in the admin field in Django.
 
-Second, any keywords in your FOIA request should be enclosed with two brackets, like `{{recipient_name}}`. You can use any amount of whitespace you want in between the brackets and the keyword. Those keywords can go anywhere you'd like, but you must limit yourself to the following keywords:
+Second, any keywords in your FOIA request should be enclosed with two brackets, like `{{recipient_name}}`. You can use any amount of whitespace you want in between the brackets and the keyword. You can also use Django-templating features like {{requested_records|linebreaks}}, which is useful for making multi-item requests readable.
+
+Those keywords can go anywhere you'd like, but you must limit yourself to the following keywords:
 
 - `requested_records`: This is the field you use to specify the records you want to request. 
 **Note: This is the only *mandatory* item in your template. If you do not include it, you will not be able to upload your template file.**
@@ -104,3 +114,4 @@ In order to create this tool, I relied on a number of useful guides and librarie
 -  I used parts of [`foiamail`](https://github.com/bettergov/foiamail) to deal with g-mail authentication and in order to send requests. I was also heavily inspired by the design of `foiamail`, even if those design choices don't directly appear in the code I wrote.
 - I used [@loganchien's Django Full-text search demo](http://logan.tw/posts/2017/12/30/full-text-search-with-django-and-postgresql/) to implement the indexing for the full-text search.
 - I used [Simon Willison's guide for implementing full-text search in Django](https://simonwillison.net/2017/Oct/5/django-postgresql-faceted-search/) in order to set up full-text search (outside of the indexing, as described above).
+- As mentioned earlier in this README, a huge shoutout to [Muckrock](https://www.muckrock.com/), [The Reporter's Committee for Freedom of the Press](https://www.rcfp.org/), and the [National Freedom of Information Coalition](https://www.nfoic.org/) for providing readily accessible information about public records laws across the country.

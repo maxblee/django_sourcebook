@@ -13,16 +13,31 @@
 <ul class="stat-container no-bullet">
     <li class="stat-item"><span class="stat">{{num_requests}} </span><span class="subheader h3">requests filed</span></li>
     <li class="stat-item"><span class="stat">{{num_cur_yr}} </span><span class="subheader h3">requests filed this year</span></li>
+    {% if completed_requests is not None %}
+    <li class="stat-item"><span class="stat">{{completed_requests}} </span><span class="subheader h3">completed requests</span></li>
+    {% endif %}
+    {% if avg_resp_time is not None %}
     <li class="stat-item"><span class="stat">{{avg_resp_time}} days</span><span class="subheader h3">Average completion time</span></li>
+    {% endif %}
+    {% if max_resp_time is not None %}
     <li class="stat-item"><span class="stat">{{max_resp_time}} days</span><span class="subheader h3">Maximum completion time</span></li>
+    {% endif %}
 </ul>
+<p><b>Note: </b>Average and maximum response times only include the response times for completed requests.</p>
 {% endif %}
 <div>
-    <h2 class="text-center">Search for Public Records Requests</h2>
+    <h2 class="text-center">Search for Bulk Request Submissions</h2>
     <form action="{% url 'foia_request_list' %}" method="GET">
         <label for="source-search"><span class="show-for-sr">Search for public records requests based on the content of the request</span>
             <input name="q" id="source-search" type="text">
         </label>
+    </form>
+</div>
+<div>
+    <h2 class="text-center">Browse Requests</h2>
+    <form action="{% url 'foia_browse' %}" method="GET">
+        {{ foia_form }}
+        <input class="button" type="submit" value="Submit">
     </form>
 </div>
 {% endblock %}

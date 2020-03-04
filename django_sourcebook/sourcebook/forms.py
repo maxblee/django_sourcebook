@@ -1,14 +1,20 @@
+from dal import autocomplete
 from django.core import validators
 from django.core.validators import EmailValidator
 from django import forms
 from django import urls
 from django.db.models import Q
 from sourcebook.models import (
+    Document,
     Entity,
     FoiaRequestBase,
     FoiaRequestItem,
-    Source
+    FoiaStatus,
+    Source,
+    Project,
+    State,
 )
+
 
 class DataListWidget(forms.Select):
     template_name = "_widgets/datalist.html"
@@ -25,10 +31,15 @@ class MultiEmailField(forms.CharField):
             EmailValidator()(email_addr)
         return emails
 
+
 class FoiaRequestBaseForm(forms.ModelForm):
 
-    cc = MultiEmailField(help_text="Comma-separated list of email addresses to CC", required=False)
-    bcc = MultiEmailField(help_text="Comma-separated list of email addresses to BCC", required=False)
+    cc = MultiEmailField(
+        help_text="Comma-separated list of email addresses to CC", required=False
+    )
+    bcc = MultiEmailField(
+        help_text="Comma-separated list of email addresses to BCC", required=False
+    )
 
     class Meta:
         model = FoiaRequestBase
@@ -46,12 +57,25 @@ class FoiaRequestBaseForm(forms.ModelForm):
 
 
 FoiaRequestFormSet = forms.modelformset_factory(
-    FoiaRequestItem, fields=("agency", "recipient",), extra=1,
-    widgets= {"agency": DataListWidget() }
+    FoiaRequestItem,
+    fields=("agency", "recipient",),
+    extra=1,
+    widgets={"agency": forms.Select()}
+    # widgets= {"agency": DataListWidget() }
 )
 # only show agencies that
 FoiaRequestFormSet.form.base_fields["agency"].queryset = Entity.objects.filter(
     Q(foia_email__isnull=False)
 )
 
-FoiaRequestFormSet.form.base_fields["recipient"].queryset = Source.objects.none()
+# FoiaRequestFormSet.form.base_fields["recipient"].queryset = Source.objects.none()
+####### GET Requests ######
+
+
+class BrowseRequestForm(forms.Form):
+    overdue = forms.BooleanField(required=False)
+    status = forms.MultipleChoiceField(choices=FoiaStatus.choices, required=False)
+    related_project = forms.ModelChoiceField(
+        queryset=Project.objects.all(), required=False
+    )
+    state = forms.ModelChoiceField(queryset=State.objects.all(), required=False)

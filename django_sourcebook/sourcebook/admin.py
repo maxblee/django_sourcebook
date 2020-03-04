@@ -10,6 +10,7 @@ from sourcebook.models import (
     Document,
     FoiaRequestBase,
     FoiaRequestItem,
+    FoiaStatus,
     ScheduledFoiaContent,
     ScheduledFoiaAgency,
     Entity,
@@ -29,11 +30,13 @@ class ScheduledFoiaRequestForAgency(admin.ModelAdmin):
 
 @admin.register(FoiaRequestBase)
 class FoiaRequestBaseAdmin(admin.ModelAdmin):
+    search_fields = ["short_description", "requested_records"]
     list_display = ("short_description", "date_filed")
 
 
 @admin.register(FoiaRequestItem)
 class FoiaRequestItemAdmin(VersionAdmin):
+    search_fields = ["agency__name", "request_content__short_description"]
     list_display = (
         "request_content",
         "agency",
@@ -82,12 +85,14 @@ class ProjectTaskAdmin(VersionAdmin):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    pass
+    search_fields = ["name", "short_description", "foia_request"]
+    autocomplete_fields = ["foia_request"]
 
 
 @admin.register(Entity)
 class EntityAdmin(admin.ModelAdmin):
-    list_display = ("name", "municipality", "state")
+    search_fields = ["name"]
+    list_display = ("name", "municipality", "locality")
 
 
 @admin.register(State)

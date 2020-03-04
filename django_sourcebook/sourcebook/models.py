@@ -5,7 +5,10 @@ from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.utils.functional import cached_property
+import pytz
 import us
+import holidays
 from phonenumber_field.modelfields import PhoneNumberField
 from taggit.managers import TaggableManager
 from django_better_admin_arrayfield.models.fields import ArrayField
@@ -23,13 +26,15 @@ RCFP_BASE_URL = "https://www.rcfp.org/open-government-guide/"
 
 
 class FoiaStatus(models.TextChoices):
-    NO_RESPONSE = "nr", _("no response")
-    ACKNOWLEDGED = "a", _("acknowledged")
-    CLOSED_FULFILLED = "cf", _("closed - no redactions")
-    CLOSED_REDACTED = "cr", _("closed - some redactions")
-    CLOSED_EXCESS_FEE = "ce", _("closed - did not pay fee")
-    APPEALED = "ap", _("appealed")
-    SUED = "s", _("sued")
+    NO_RESPONSE = "nr", _("No Response")
+    ACKNOWLEDGED = "a", _("Acknowledged")
+    CLOSED_FULFILLED = "cf", _("Closed - No Redactions")
+    CLOSED_REDACTED = "cr", _("Closed - Some Redactions")
+    CLOSED_EXCESS_FEE = "ce", _("Closed - Did Not Pay Fee")
+    CLOSED_DENIAL = "cd", _("Closed - Denied Request")
+    APPEALED = "ap", _("Appealed")
+    SUED = "s", _("Sued")
+    CLOSED_NO_RECORDS = "cn", _("Closed - No Records")
 
 
 def get_current_date():
@@ -90,7 +95,9 @@ class State(models.Model):
 
 
 class Entity(models.Model):
-    name = models.CharField(max_length=200)
+    # Require a unique constraint because we have to look up from a select/datalist
+    # and we want to know we're filing the right thing.
+    name = models.CharField(max_length=200, unique=True)
     street_address = models.CharField(max_length=200)
     municipality = models.CharField(max_length=100, blank=True)
     # county or county equivalent
@@ -103,13 +110,14 @@ class Entity(models.Model):
     is_federal = models.BooleanField("Federal Agency?", default=False)
     is_public_body = models.BooleanField("Public Body?", default=False)
 
-    search_vector = SearchVectorField(null=True)
+    search_vector = SearchVectorField(null=True, editable=False)
 
     def __str__(self):
         return self.name
 
     class Meta:
         verbose_name_plural = "entities"
+
 
 @reversion.register
 class Source(models.Model):
@@ -159,7 +167,7 @@ class Source(models.Model):
     time_added = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
 
-    search_vector = SearchVectorField(null=True)
+    search_vector = SearchVectorField(null=True, editable=False)
 
     @property
     def entity_name(self):
@@ -184,9 +192,7 @@ class Source(models.Model):
 
     class Meta:
         ordering = ["last_name", "first_name"]
-        indexes = [
-            GinIndex(fields=["search_vector"])
-        ]
+        indexes = [GinIndex(fields=["search_vector"])]
 
 
 class FoiaContent(models.Model):
@@ -246,9 +252,9 @@ class ScheduledFoiaAgency(models.Model):
     recipient = models.ForeignKey(
         "Source",
         on_delete=models.SET_NULL,
-        limit_choices_to={"source_type":Source.SourceType.FOIA},
+        limit_choices_to={"source_type": Source.SourceType.FOIA},
         null=True,
-        blank=True
+        blank=True,
     )
     # recipient_name = models.CharField("name of public records officer", max_length=150)
 
@@ -264,11 +270,11 @@ class FoiaRequestItem(models.Model):
     )
     agency = models.ForeignKey(Entity, on_delete=models.CASCADE)
     recipient = models.ForeignKey(
-        Source, 
+        Source,
         on_delete=models.SET_NULL,
-        limit_choices_to={"source_type": Source.SourceType.FOIA },
+        limit_choices_to={"source_type": Source.SourceType.FOIA},
         null=True,
-        blank=True
+        blank=True,
     )
     # # this doesn't link to a source because in a lot of cases, we won't know the officer's name
     # # and we can link our actual contacts to a FOIA request.
@@ -293,6 +299,76 @@ class FoiaRequestItem(models.Model):
         help_text="list any modifications you've made to your original request",
     )
     time_completed = models.DateField(blank=True, null=True)
+
+    @staticmethod
+    def calculate_days(start_date, num_days, state_holidays, business=False):
+        """Calculates the number of days required for a response.
+
+        Parameters
+        ----------
+        start_date: datetime.date
+            The first date (i.e. the exact date the request was filed)
+            **Note:** This function adds a day to the response because
+            most agencies don't start time until the day *after* a request
+            was received.
+        num_days: int
+            The number of days (e.g. for a response)
+        state_holidays: holidays.countries.united_states.UnitedStates
+            Represents a dictionary-type object referring to the state/federal
+            holidays (to calculate business days)
+        business: bool
+            Whether or not to include business days in the response.
+        """
+        if not (
+            isinstance(start_date, datetime.date)
+            or isinstance(start_date, datetime.datetime)
+        ):
+            raise ValueError("The start date must be a date or datetime")
+        skipped_first = False  # mark true once you've moved forward 1 day
+        rel_days_count = 0
+        current_date = start_date
+        while rel_days_count < num_days:
+            current_date += datetime.timedelta(days=1)
+            if not skipped_first:
+                skipped_first = True
+                continue
+            is_holiday = (
+                current_date.weekday() in {5, 6} or current_date in state_holidays
+            )
+            if is_holiday and business:
+                continue
+            rel_days_count += 1
+        # allow for datetime.date --> but timezones don't work there
+        # need not because datetime is subclass of date
+        if not isinstance(current_date, datetime.datetime):
+            return current_date
+        return current_date.astimezone(pytz.utc).date()
+
+    @cached_property
+    def due_date(self):
+        """The date when the request needs to be processed by."""
+        state_abbr = "" if self.agency.state is None else self.agency.state.info.abbr
+        if self.agency.state is None:
+            expected_tz = "America/New_York"
+        else:
+            expected_tz = self.agency.state.info.capital_tz
+        request_filed = self.request_content.date_filed.astimezone(
+            pytz.timezone(expected_tz)
+        )
+        if self.agency.is_federal:
+            # TODO: Should probably add this into separate "state"
+            business = True
+            num_days = 20
+        elif self.agency.state is None:
+            num_days = None
+            business = None
+        else:
+            num_days = self.agency.state.maximum_response_time
+            business = self.agency.state.business_days
+        state_holidays = holidays.US(state=state_abbr)
+        if num_days is None or business is None:
+            return None
+        return self.calculate_days(request_filed, num_days, state_holidays, business)
 
     @property
     def response_time(self):
